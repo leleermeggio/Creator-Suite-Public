@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
 from backend.config import get_settings
+from backend.models.enums import JobStatus, JobType
+from backend.models.job import Job
 from backend.models.media_asset import MediaAsset
 from backend.models.project import Project
 from backend.models.user import User
-from backend.models.enums import JobStatus, JobType
-from backend.models.job import Job
 from backend.schemas.media import (
     ImportURLRequest,
     MediaAssetResponse,

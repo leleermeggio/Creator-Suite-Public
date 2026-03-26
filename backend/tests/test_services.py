@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pytest
 
 from backend.services.media_manager import generate_storage_key, validate_content_type

@@ -77,9 +77,54 @@ Before opening a PR:
 
 - [ ] Branch is up to date with `main`
 - [ ] Code runs locally without errors
+- [ ] `ruff check .` and `ruff format --check .` pass in `backend/`
 - [ ] No secrets or `.env` files included
 - [ ] Commit messages follow the convention above
 - [ ] PR title follows the same prefix format (e.g. `[FEAT] Add export presets`)
+
+---
+
+## Code Quality — Ruff Linting & Formatting
+
+Our CI runs **ruff** on every push/PR that touches `backend/`. If your code is not
+formatted correctly, the pipeline **will fail** and your PR cannot be merged.
+
+### One-time setup (recommended)
+
+Install [pre-commit](https://pre-commit.com/) so formatting is checked automatically
+**before** each commit — no more CI surprises:
+
+```bash
+pip install pre-commit   # or: pipx install pre-commit
+pre-commit install       # hooks into .git — runs on every `git commit`
+```
+
+From now on, every `git commit` will auto-check (and auto-fix) formatting.
+
+### Manual check / fix
+
+You can always run the checks yourself:
+
+```bash
+# Check only (same as CI)
+cd backend
+ruff check .
+ruff format --check .
+
+# Auto-fix
+ruff check --fix .
+ruff format .
+```
+
+### What if CI fails on formatting?
+
+1. Run `ruff format .` inside `backend/`.
+2. Commit the reformatted files: `git add -A && git commit -m "[STYLE] Run ruff format"`
+3. Push again.
+
+> **Tip:** If you use VS Code, install the
+> [Ruff extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+> and enable *Format on Save* to never think about this again.
 
 ---
 

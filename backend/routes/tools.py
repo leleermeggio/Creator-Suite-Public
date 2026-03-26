@@ -56,6 +56,7 @@ OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 
 # ── Unified OpenAI-compatible helper ─────────────────────────────────────────
 
+
 async def _call_openai_compatible(
     client: httpx.AsyncClient,
     url: str,
@@ -78,7 +79,12 @@ async def _call_openai_compatible(
     }
     resp = await client.post(url, json=payload, headers=headers, timeout=60.0)
     if not resp.is_success:
-        logger.error("❌ OpenAI-compat HTTP %s (%s) — body: %s", resp.status_code, url, resp.text[:500])
+        logger.error(
+            "❌ OpenAI-compat HTTP %s (%s) — body: %s",
+            resp.status_code,
+            url,
+            resp.text[:500],
+        )
         resp.raise_for_status()
 
     data = resp.json()
@@ -129,6 +135,7 @@ async def _call_gemini(
 
 # ── OCR.space helper (free, no API key) ──────────────────────────────────────
 
+
 async def _call_ocr_space(
     client: httpx.AsyncClient,
     image_base64: str,
@@ -162,6 +169,7 @@ async def _call_ocr_space(
 
 # ── Provider dispatch ────────────────────────────────────────────────────────
 
+
 async def _call_ai(
     client: httpx.AsyncClient,
     provider: str,
@@ -177,18 +185,30 @@ async def _call_ai(
         return await _call_gemini(client, api_key, model, system_prompt, user_content)
     elif provider == "groq":
         if not api_key:
-            raise ValueError("Groq requires an API key. Get one free at console.groq.com")
-        return await _call_openai_compatible(client, GROQ_URL, model, system_prompt, user_content, api_key)
+            raise ValueError(
+                "Groq requires an API key. Get one free at console.groq.com"
+            )
+        return await _call_openai_compatible(
+            client, GROQ_URL, model, system_prompt, user_content, api_key
+        )
     elif provider == "openrouter":
         if not api_key:
-            raise ValueError("OpenRouter requires an API key. Get one free at openrouter.ai")
-        return await _call_openai_compatible(client, OPENROUTER_URL, model, system_prompt, user_content, api_key)
+            raise ValueError(
+                "OpenRouter requires an API key. Get one free at openrouter.ai"
+            )
+        return await _call_openai_compatible(
+            client, OPENROUTER_URL, model, system_prompt, user_content, api_key
+        )
     else:
         # Pollinations (default, no key needed)
-        return await _call_openai_compatible(client, POLLINATIONS_URL, model, system_prompt, user_content)
+        return await _call_openai_compatible(
+            client, POLLINATIONS_URL, model, system_prompt, user_content
+        )
 
 
-def _resolve_provider(body_provider: str | None, body_api_key: str | None) -> tuple[str, str | None, str]:
+def _resolve_provider(
+    body_provider: str | None, body_api_key: str | None
+) -> tuple[str, str | None, str]:
     """Determine provider, api_key, and default model from request + settings."""
     settings = get_settings()
     provider = body_provider or "pollinations"
@@ -227,7 +247,9 @@ async def translate(
     async with httpx.AsyncClient() as client:
         # Try selected provider
         try:
-            translated = await _call_ai(client, provider, api_key, model, system_prompt, body.text)
+            translated = await _call_ai(
+                client, provider, api_key, model, system_prompt, body.text
+            )
             return ToolResult(result=translated)
         except Exception as exc:
             logger.warning("⚠️ %s translate failed, trying fallbacks: %s", provider, exc)
@@ -236,7 +258,11 @@ async def translate(
         if provider != "pollinations":
             try:
                 translated = await _call_openai_compatible(
-                    client, POLLINATIONS_URL, "openai", system_prompt, body.text,
+                    client,
+                    POLLINATIONS_URL,
+                    "openai",
+                    system_prompt,
+                    body.text,
                 )
                 return ToolResult(result=translated)
             except Exception as exc:
@@ -245,7 +271,9 @@ async def translate(
         # Fallback: deep-translator
         try:
             translated = await asyncio.to_thread(
-                lambda: GoogleTranslator(source="auto", target=body.target_language).translate(body.text)
+                lambda: GoogleTranslator(
+                    source="auto", target=body.target_language
+                ).translate(body.text)
             )
             if not translated:
                 raise HTTPException(
@@ -270,12 +298,16 @@ async def summarize(
     provider, api_key, default_model = _resolve_provider(body.provider, body.api_key)
     model = body.model or default_model
     system_prompt = "Sei un assistente che riassume testi in modo conciso."
-    user_prompt = f"Riassumi il seguente testo in modo conciso con bullet points:\n\n{body.text}"
+    user_prompt = (
+        f"Riassumi il seguente testo in modo conciso con bullet points:\n\n{body.text}"
+    )
 
     async with httpx.AsyncClient() as client:
         # Try selected provider
         try:
-            result = await _call_ai(client, provider, api_key, model, system_prompt, user_prompt)
+            result = await _call_ai(
+                client, provider, api_key, model, system_prompt, user_prompt
+            )
             return ToolResult(result=result)
         except Exception as exc:
             logger.warning("⚠️ %s summarize failed, trying fallbacks: %s", provider, exc)
@@ -284,7 +316,11 @@ async def summarize(
         if provider != "pollinations":
             try:
                 result = await _call_openai_compatible(
-                    client, POLLINATIONS_URL, "openai", system_prompt, user_prompt,
+                    client,
+                    POLLINATIONS_URL,
+                    "openai",
+                    system_prompt,
+                    user_prompt,
                 )
                 return ToolResult(result=result)
             except Exception as exc:
@@ -309,11 +345,18 @@ async def ocr(
         if provider == "gemini" and api_key:
             try:
                 parts = [
-                    {"inline_data": {"mime_type": "image/jpeg", "data": body.image_base64}},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": body.image_base64,
+                        }
+                    },
                     {"text": "Estrai tutto il testo visibile in questa immagine."},
                 ]
                 result = await _call_gemini(
-                    client, api_key, model,
+                    client,
+                    api_key,
+                    model,
                     "Sei un assistente OCR. Restituisci solo il testo estratto dall'immagine.",
                     parts,
                 )
@@ -325,13 +368,24 @@ async def ocr(
         if provider == "groq" and api_key:
             try:
                 vision_content = [
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{body.image_base64}"}},
-                    {"type": "text", "text": "Extract all visible text from this image. Return only the extracted text."},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{body.image_base64}"
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": "Extract all visible text from this image. Return only the extracted text.",
+                    },
                 ]
                 result = await _call_openai_compatible(
-                    client, GROQ_URL, "llama-3.2-11b-vision-preview",
+                    client,
+                    GROQ_URL,
+                    "llama-3.2-11b-vision-preview",
                     "You are an OCR assistant. Extract all visible text from images.",
-                    vision_content, api_key,
+                    vision_content,
+                    api_key,
                 )
                 return ToolResult(result=result)
             except Exception as exc:

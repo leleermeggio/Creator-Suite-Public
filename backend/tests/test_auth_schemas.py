@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from backend.auth.schemas import RegisterRequest, LoginRequest
+from backend.auth.schemas import LoginRequest, RegisterRequest
 
 
 def test_register_rejects_short_password():

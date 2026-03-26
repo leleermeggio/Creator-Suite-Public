@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from backend.services.caption_burnin_service import (
+    STYLE_PRESETS,
     _hex_to_ass_color,
     _seconds_to_ass_time,
     generate_ass_subtitle,
-    STYLE_PRESETS,
 )
 
 

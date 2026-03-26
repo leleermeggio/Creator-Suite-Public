@@ -21,9 +21,9 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Lint
-        run: cd backend && ruff check .
+        run: ruff check backend/
       - name: Format check
-        run: cd backend && ruff format --check .
+        run: ruff format --check backend/
 
   test:
     runs-on: ubuntu-latest

@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
-from backend.models.user import User
-from backend.models.project import Project
-from backend.models.media_asset import MediaAsset
-from backend.models.job import Job
 from backend.models.enums import JobStatus, JobType
+from backend.models.job import Job
+from backend.models.media_asset import MediaAsset
+from backend.models.project import Project
+from backend.models.user import User
 
 
 @pytest.mark.asyncio

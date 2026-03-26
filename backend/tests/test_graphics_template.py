@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from backend.services.graphics_template_service import (
+    TEMPLATES,
     get_template,
     list_templates,
-    TEMPLATES,
 )
 
 

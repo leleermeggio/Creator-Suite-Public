@@ -11,23 +11,23 @@ from backend.auth.routes import router as auth_router
 from backend.config import get_settings
 from backend.middleware.rate_limit import limiter
 from backend.middleware.security import SecurityHeadersMiddleware
+from backend.routes.analytics import router as analytics_router
+from backend.routes.audio import router as audio_router
+from backend.routes.captions import router as captions_router
+from backend.routes.comments import router as comments_router
+from backend.routes.exports import router as exports_router
+from backend.routes.graphics import router as graphics_router
 from backend.routes.health import router as health_router
 from backend.routes.jobs import router as jobs_router
 from backend.routes.media import router as media_router
-from backend.routes.captions import router as captions_router
-from backend.routes.exports import router as exports_router
 from backend.routes.projects import router as projects_router
-from backend.routes.audio import router as audio_router
-from backend.routes.search import router as search_router
-from backend.routes.graphics import router as graphics_router
-from backend.routes.thumbnails import router as thumbnails_router
-from backend.routes.analytics import router as analytics_router
-from backend.routes.comments import router as comments_router
 from backend.routes.reviews import router as reviews_router
+from backend.routes.search import router as search_router
 from backend.routes.subscriptions import router as subscriptions_router
 from backend.routes.teams import router as teams_router
-from backend.routes.watermark import router as watermark_router
+from backend.routes.thumbnails import router as thumbnails_router
 from backend.routes.tools import router as tools_router
+from backend.routes.watermark import router as watermark_router
 
 
 def _get_db_dependency(session_factory: async_sessionmaker[AsyncSession]):

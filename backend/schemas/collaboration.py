@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from backend.models.project_member import ProjectRole
 from backend.models.team import TeamRole
 
-
 # --- Teams ---
 
 

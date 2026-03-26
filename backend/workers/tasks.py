@@ -143,6 +143,7 @@ def _handle_download(job_id: str, params: dict) -> dict:
 
 def _handle_tts(job_id: str, params: dict) -> dict:
     import asyncio
+
     from backend.services.tts_service import text_to_speech
 
     text = params.get("text", "")
