@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+
 import httpx
+from deep_translator import GoogleTranslator
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from backend.auth.dependencies import get_current_user
 from backend.config import get_settings
 from backend.models.user import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["tools"])
 
@@ -100,21 +106,26 @@ async def translate(
                     user_content=body.text,
                 )
                 return ToolResult(result=translated)
-            except Exception:
-                pass  # fall through to deep-translator
+            except Exception as exc:
+                logger.warning("⚠️ Gemini translate failed, falling back to deep-translator: %s", exc)
 
         # Fallback: deep-translator with auto language detection
-        import asyncio
-        from deep_translator import GoogleTranslator
         try:
             translated = await asyncio.to_thread(
                 lambda: GoogleTranslator(source="auto", target=body.target_language).translate(body.text)
             )
-            return ToolResult(result=translated or body.text)
+            if not translated:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Translation service returned empty result.",
+                )
+            return ToolResult(result=translated)
+        except HTTPException:
+            raise
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Servizio di traduzione non disponibile",
+                detail="Translation service unavailable.",
             ) from exc
 
 
@@ -128,24 +139,37 @@ async def summarize(
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google API Key richiesta. Aggiungila nelle Impostazioni.",
+            detail="Google API key required. Add it in Settings.",
         )
 
+    model = body.model or settings.GEMINI_MODEL
     async with httpx.AsyncClient() as client:
         try:
             result = await _call_gemini(
                 client=client,
                 api_key=api_key,
-                model=body.model or settings.GEMINI_MODEL,
+                model=model,
                 system_prompt="Sei un assistente che riassume testi in modo conciso.",
                 user_content=f"Riassumi il seguente testo in modo conciso con bullet points:\n\n{body.text}",
             )
         except httpx.HTTPStatusError as exc:
-            status_code = exc.response.status_code
-            detail = "Troppe richieste, riprova tra qualche secondo." if status_code == 429 else f"Gemini error {status_code}"
+            code = exc.response.status_code
+            if code == 429:
+                detail = "Too many requests. Please try again in a few seconds."
+            elif code == 404:
+                detail = f"Model '{model}' not available. Change the model in Settings."
+            elif code == 400:
+                detail = "Invalid API key. Check your Settings."
+            else:
+                detail = f"Gemini error {code}. Please try again."
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
-        except (httpx.RequestError, ValueError) as exc:
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable") from exc
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="AI service unreachable. Please try again.",
+            ) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return ToolResult(result=result)
 
 
@@ -159,9 +183,10 @@ async def ocr(
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google API Key richiesta. Aggiungila nelle Impostazioni.",
+            detail="Google API key required. Add it in Settings.",
         )
 
+    model = body.model or settings.GEMINI_MODEL
     parts = [
         {
             "inline_data": {
@@ -177,14 +202,26 @@ async def ocr(
             result = await _call_gemini(
                 client=client,
                 api_key=api_key,
-                model=body.model or settings.GEMINI_MODEL,
+                model=model,
                 system_prompt="Sei un assistente OCR. Restituisci solo il testo estratto dall'immagine.",
                 user_content=parts,
             )
         except httpx.HTTPStatusError as exc:
-            status_code = exc.response.status_code
-            detail = "Troppe richieste, riprova tra qualche secondo." if status_code == 429 else f"Gemini error {status_code}"
+            code = exc.response.status_code
+            if code == 429:
+                detail = "Too many requests. Please try again in a few seconds."
+            elif code == 404:
+                detail = f"Model '{model}' not available. Change the model in Settings."
+            elif code == 400:
+                detail = "Invalid API key. Check your Settings."
+            else:
+                detail = f"Gemini error {code}. Please try again."
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
-        except (httpx.RequestError, ValueError) as exc:
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable") from exc
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="AI service unreachable. Please try again.",
+            ) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return ToolResult(result=result)
