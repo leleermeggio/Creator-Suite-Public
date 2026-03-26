@@ -43,7 +43,8 @@ async def list_teams(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Team).join(TeamMember, TeamMember.team_id == Team.id)
+        select(Team)
+        .join(TeamMember, TeamMember.team_id == Team.id)
         .where(TeamMember.user_id == user.id)
         .order_by(Team.created_at.desc())
     )
@@ -60,7 +61,11 @@ async def get_team(
     return team
 
 
-@router.post("/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{team_id}/members",
+    response_model=TeamMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_member(
     team_id: str,
     body: TeamMemberAdd,
@@ -109,7 +114,9 @@ async def update_member_role(
     return member
 
 
-@router.delete("/{team_id}/members/{member_user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{team_id}/members/{member_user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def remove_member(
     team_id: str,
     member_user_id: str,
@@ -140,17 +147,17 @@ async def list_members(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_team_as_member(team_id, user.id, db)
-    result = await db.execute(
-        select(TeamMember).where(TeamMember.team_id == team_id)
-    )
+    result = await db.execute(select(TeamMember).where(TeamMember.team_id == team_id))
     return list(result.scalars().all())
 
 
 # --- Helpers ---
 
+
 async def _get_team_as_member(team_id: str, user_id: str, db: AsyncSession) -> Team:
     result = await db.execute(
-        select(Team).join(TeamMember, TeamMember.team_id == Team.id)
+        select(Team)
+        .join(TeamMember, TeamMember.team_id == Team.id)
         .where(Team.id == team_id, TeamMember.user_id == user_id)
     )
     team = result.scalar_one_or_none()

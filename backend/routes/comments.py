@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +15,9 @@ from backend.schemas.collaboration import CommentCreate, CommentResponse, Commen
 router = APIRouter(prefix="/projects/{project_id}/comments", tags=["comments"])
 
 
-async def _verify_project_access(project_id: str, user: User, db: AsyncSession) -> Project:
+async def _verify_project_access(
+    project_id: str, user: User, db: AsyncSession
+) -> Project:
     result = await db.execute(
         select(Project).where(Project.id == project_id, Project.user_id == user.id)
     )
@@ -71,7 +73,9 @@ async def update_comment(
 ):
     result = await db.execute(
         select(Comment).where(
-            Comment.id == comment_id, Comment.project_id == project_id, Comment.user_id == user.id
+            Comment.id == comment_id,
+            Comment.project_id == project_id,
+            Comment.user_id == user.id,
         )
     )
     comment = result.scalar_one_or_none()
@@ -96,7 +100,9 @@ async def resolve_comment(
 ):
     await _verify_project_access(project_id, user, db)
     result = await db.execute(
-        select(Comment).where(Comment.id == comment_id, Comment.project_id == project_id)
+        select(Comment).where(
+            Comment.id == comment_id, Comment.project_id == project_id
+        )
     )
     comment = result.scalar_one_or_none()
     if not comment:

@@ -3,12 +3,12 @@
 Usage:
     python -m backend.seeds.dev_user
 """
+
 from __future__ import annotations
 
 import asyncio
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.passwords import hash_password
 from backend.config import get_settings

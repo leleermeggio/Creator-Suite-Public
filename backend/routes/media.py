@@ -65,7 +65,9 @@ async def get_upload_url(
     return UploadURLResponse(upload_url=upload_url, storage_key=storage_key)
 
 
-@router.post("/register", response_model=MediaAssetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=MediaAssetResponse, status_code=status.HTTP_201_CREATED
+)
 async def register_asset(
     body: RegisterAssetRequest,
     user: User = Depends(get_current_user),
@@ -111,7 +113,9 @@ async def get_asset(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(MediaAsset).where(MediaAsset.id == asset_id, MediaAsset.user_id == user.id)
+        select(MediaAsset).where(
+            MediaAsset.id == asset_id, MediaAsset.user_id == user.id
+        )
     )
     asset = result.scalar_one_or_none()
     if not asset:
@@ -158,7 +162,9 @@ async def delete_asset(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(MediaAsset).where(MediaAsset.id == asset_id, MediaAsset.user_id == user.id)
+        select(MediaAsset).where(
+            MediaAsset.id == asset_id, MediaAsset.user_id == user.id
+        )
     )
     asset = result.scalar_one_or_none()
     if not asset:

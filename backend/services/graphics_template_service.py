@@ -90,7 +90,7 @@ def render_title_card(
 
     template = TEMPLATES.get(template_name, TEMPLATES["title_card_minimal"])
     bg = template.get("bg", "#000000")
-    font = template.get("font", "Inter")
+    _font = template.get("font", "Inter")
     font_size = template.get("size", 72)
     color = template.get("color", "white")
 
@@ -98,16 +98,24 @@ def render_title_card(
 
     cmd = [
         "ffmpeg",
-        "-f", "lavfi",
-        "-i", f"color=c={bg}:s={width}x{height}:d={duration}:r=30",
-        "-vf", (
+        "-f",
+        "lavfi",
+        "-i",
+        f"color=c={bg}:s={width}x{height}:d={duration}:r=30",
+        "-vf",
+        (
             f"drawtext=text='{safe_text}':"
             f"fontsize={font_size}:fontcolor={color}:"
             f"x=(w-tw)/2:y=(h-th)/2"
         ),
-        "-c:v", "libx264", "-preset", "fast",
-        "-pix_fmt", "yuv420p",
-        "-y", output_path,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-pix_fmt",
+        "yuv420p",
+        "-y",
+        output_path,
     ]
 
     logger.info("Rendering title card: '%s' (template=%s)", text, template_name)
@@ -140,53 +148,29 @@ def render_lower_third(
     padding = template.get("padding", 20)
 
     safe_name = name.replace("'", "\\'").replace(":", "\\:")
-    safe_title = title.replace("'", "\\'").replace(":", "\\:")
-
-    # Draw a semi-transparent bar at bottom with name + title
-    filter_parts = [
-        f"color=c=black@0.7:s={width}x{bar_h}:d={duration}:r=30[bar]",
-        f"color=c=black@0:s={width}x{height}:d={duration}:r=30[bg]",
-        f"[bg][bar]overlay=0:{height - bar_h}[comp]",
-    ]
-
-    drawtext = (
-        f"[comp]drawtext=text='{safe_name}':"
-        f"fontsize={font_size + 4}:fontcolor={color}:"
-        f"x={padding}:y={height - bar_h + 10}"
-    )
-    if title:
-        drawtext += (
-            f",drawtext=text='{safe_title}':"
-            f"fontsize={font_size - 2}:fontcolor={color}@0.8:"
-            f"x={padding}:y={height - bar_h + 10 + font_size + 8}"
-        )
-
-    filter_complex = ";".join(filter_parts) + ";" + drawtext
-
-    cmd = [
-        "ffmpeg",
-        "-filter_complex", filter_complex,
-        "-map", "[comp]" if not title else "",
-        "-t", str(duration),
-        "-c:v", "libx264", "-preset", "fast",
-        "-pix_fmt", "yuv420p",
-        "-y", output_path,
-    ]
 
     # Simplified approach — use lavfi directly
     simple_cmd = [
         "ffmpeg",
-        "-f", "lavfi",
-        "-i", f"color=c=black:s={width}x{height}:d={duration}:r=30",
-        "-vf", (
+        "-f",
+        "lavfi",
+        "-i",
+        f"color=c=black:s={width}x{height}:d={duration}:r=30",
+        "-vf",
+        (
             f"drawbox=x=0:y={height - bar_h}:w={width}:h={bar_h}:color=black@0.7:t=fill,"
             f"drawtext=text='{safe_name}':"
             f"fontsize={font_size + 4}:fontcolor={color}:"
             f"x={padding}:y={height - bar_h + 10}"
         ),
-        "-c:v", "libx264", "-preset", "fast",
-        "-pix_fmt", "yuv420p",
-        "-y", output_path,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-pix_fmt",
+        "yuv420p",
+        "-y",
+        output_path,
     ]
 
     logger.info("Rendering lower third: '%s' (template=%s)", name, template_name)

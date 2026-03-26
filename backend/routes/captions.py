@@ -34,7 +34,9 @@ async def _verify_project_access(
     return project
 
 
-@router.post("/generate", response_model=CaptionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/generate", response_model=CaptionResponse, status_code=status.HTTP_201_CREATED
+)
 async def generate_captions(
     body: CaptionCreate,
     user: User = Depends(get_current_user),
@@ -111,7 +113,11 @@ async def update_caption(
     return caption
 
 
-@router.post("/{caption_id}/translate", response_model=CaptionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{caption_id}/translate",
+    response_model=CaptionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def translate_caption(
     caption_id: str,
     body: TranslateRequest,

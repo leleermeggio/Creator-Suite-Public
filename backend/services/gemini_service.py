@@ -19,6 +19,7 @@ def _get_model():
 
     try:
         import google.generativeai as genai
+
         genai.configure(api_key=api_key)
         _model = genai.GenerativeModel("gemini-2.0-flash")
         return _model
@@ -45,13 +46,16 @@ def summarize_text(text: str, language: str | None = None) -> str | None:
     if not model:
         return None
 
-    lang_hint = f" Respond in {language}." if language else " Respond in the same language as the input."
+    lang_hint = (
+        f" Respond in {language}."
+        if language
+        else " Respond in the same language as the input."
+    )
 
     try:
         response = model.generate_content(
             "Summarize the following text clearly and concisely. "
-            "Use bullet points where appropriate."
-            + lang_hint + "\n\n" + text
+            "Use bullet points where appropriate." + lang_hint + "\n\n" + text
         )
         return response.text
     except Exception as e:
@@ -74,12 +78,15 @@ def ocr_image(image_path: str) -> str | None:
 
     try:
         import PIL.Image
+
         img = PIL.Image.open(image_path)
-        response = model.generate_content([
-            "Extract all visible text from this image. "
-            "Return ONLY the extracted text, no comments or explanations.",
-            img,
-        ])
+        response = model.generate_content(
+            [
+                "Extract all visible text from this image. "
+                "Return ONLY the extracted text, no comments or explanations.",
+                img,
+            ]
+        )
         return response.text
     except Exception as e:
         logger.error("Gemini OCR failed: %s", e)
@@ -102,6 +109,7 @@ def analyze_video_frame(image_path: str, prompt: str) -> str | None:
 
     try:
         import PIL.Image
+
         img = PIL.Image.open(image_path)
         response = model.generate_content([prompt, img])
         return response.text

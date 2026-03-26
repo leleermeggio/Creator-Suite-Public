@@ -70,7 +70,9 @@ async def list_overlays(
 
     result = await db.execute(
         select(GraphicsOverlay)
-        .where(GraphicsOverlay.project_id == project_id, GraphicsOverlay.user_id == user.id)
+        .where(
+            GraphicsOverlay.project_id == project_id, GraphicsOverlay.user_id == user.id
+        )
         .order_by(GraphicsOverlay.layer_order.asc(), GraphicsOverlay.created_at.asc())
     )
     return list(result.scalars().all())

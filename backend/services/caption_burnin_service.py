@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import subprocess
@@ -193,11 +192,21 @@ def burn_captions(
             f.write(ass_content)
 
         cmd = [
-            "ffmpeg", "-i", video_path,
-            "-vf", f"ass={ass_path}",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "copy",
-            "-y", output_path,
+            "ffmpeg",
+            "-i",
+            video_path,
+            "-vf",
+            f"ass={ass_path}",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "23",
+            "-c:a",
+            "copy",
+            "-y",
+            output_path,
         ]
         logger.info("Burning captions into video: %s", video_path)
         subprocess.run(cmd, check=True, capture_output=True)

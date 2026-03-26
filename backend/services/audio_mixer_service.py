@@ -36,9 +36,13 @@ def mix_audio_tracks(
     if len(track_paths) == 1:
         # Single track — just apply volume
         cmd = [
-            "ffmpeg", "-i", track_paths[0],
-            "-af", f"volume={volumes[0]}",
-            "-y", output_path,
+            "ffmpeg",
+            "-i",
+            track_paths[0],
+            "-af",
+            f"volume={volumes[0]}",
+            "-y",
+            output_path,
         ]
         subprocess.run(cmd, check=True, capture_output=True)
         return output_path
@@ -51,13 +55,23 @@ def mix_audio_tracks(
         filter_parts.append(f"[{i}]volume={vol}[a{i}]")
 
     mix_inputs = "".join(f"[a{i}]" for i in range(len(track_paths)))
-    filter_complex = ";".join(filter_parts) + f";{mix_inputs}amix=inputs={len(track_paths)}:normalize=0[out]"
+    filter_complex = (
+        ";".join(filter_parts)
+        + f";{mix_inputs}amix=inputs={len(track_paths)}:normalize=0[out]"
+    )
 
-    cmd = ["ffmpeg"] + inputs + [
-        "-filter_complex", filter_complex,
-        "-map", "[out]",
-        "-y", output_path,
-    ]
+    cmd = (
+        ["ffmpeg"]
+        + inputs
+        + [
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            "[out]",
+            "-y",
+            output_path,
+        ]
+    )
 
     logger.info("Mixing %d audio tracks", len(track_paths))
     subprocess.run(cmd, check=True, capture_output=True)
@@ -77,9 +91,18 @@ def extract_audio(
         os.close(fd)
 
     cmd = [
-        "ffmpeg", "-i", video_path,
-        "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-vn",
+        "-acodec",
+        "pcm_s16le",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-y",
+        output_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path

@@ -73,11 +73,21 @@ def render_text_overlay(
 
     vf = ",".join(filters)
     cmd = [
-        "ffmpeg", "-i", video_path,
-        "-vf", vf,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-vf",
+        vf,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "-c:a",
+        "copy",
+        "-y",
+        output_path,
     ]
 
     logger.info("Rendering %d text overlays onto video", len(filters))
@@ -131,12 +141,27 @@ def render_image_overlay(
     filter_complex += "[out]"
 
     cmd = [
-        "ffmpeg", "-i", video_path, "-i", image_path,
-        "-filter_complex", filter_complex,
-        "-map", "[out]", "-map", "0:a?",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-i",
+        image_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "-c:a",
+        "copy",
+        "-y",
+        output_path,
     ]
 
     logger.info("Rendering image overlay onto video")

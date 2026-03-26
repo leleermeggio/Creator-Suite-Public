@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -37,6 +36,7 @@ def test_generate_storage_key_sanitizes_slashes():
 
 # --- Jumpcut service unit tests ---
 
+
 def test_compute_keep_segments():
     from backend.services.jumpcut_service import compute_keep_segments
 
@@ -61,6 +61,7 @@ def test_compute_keep_segments_no_silence():
 
 # --- Exporter service unit tests ---
 
+
 def test_get_preset():
     from backend.services.exporter_service import get_preset
 
@@ -78,15 +79,18 @@ def test_get_preset():
 
 # --- Celery task dispatch (eager mode) ---
 
+
 @pytest.fixture
 def celery_app():
     from backend.workers.celery_app import celery
+
     celery.conf.update(task_always_eager=True, task_eager_propagates=True)
     return celery
 
 
 def test_process_job_unknown_type(celery_app):
     from backend.workers.tasks import process_job
+
     result = process_job.delay(job_id="test-1", job_type="unknown_type")
     data = result.get()
     assert data["status"] == "completed"
@@ -96,8 +100,10 @@ def test_process_job_unknown_type(celery_app):
 def test_process_job_transcribe_missing_file(celery_app):
     """Transcribe with missing file should return failed status."""
     from backend.workers.tasks import process_job
+
     result = process_job.delay(
-        job_id="test-2", job_type="transcribe",
+        job_id="test-2",
+        job_type="transcribe",
         input_params={"file_path": "/nonexistent/file.wav"},
     )
     data = result.get()

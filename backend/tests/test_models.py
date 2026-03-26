@@ -12,11 +12,15 @@ from backend.models.enums import JobStatus, JobType
 
 @pytest.mark.asyncio
 async def test_create_user(db_session):
-    user = User(email="test@example.com", hashed_password="fakehash", display_name="Tester")
+    user = User(
+        email="test@example.com", hashed_password="fakehash", display_name="Tester"
+    )
     db_session.add(user)
     await db_session.commit()
 
-    result = await db_session.execute(select(User).where(User.email == "test@example.com"))
+    result = await db_session.execute(
+        select(User).where(User.email == "test@example.com")
+    )
     fetched = result.scalar_one()
     assert fetched.email == "test@example.com"
     assert fetched.display_name == "Tester"
@@ -30,10 +34,14 @@ async def test_user_email_unique(db_session):
     """Duplicate emails should raise IntegrityError."""
     from sqlalchemy.exc import IntegrityError
 
-    db_session.add(User(email="dupe@example.com", hashed_password="h1", display_name="A"))
+    db_session.add(
+        User(email="dupe@example.com", hashed_password="h1", display_name="A")
+    )
     await db_session.commit()
 
-    db_session.add(User(email="dupe@example.com", hashed_password="h2", display_name="B"))
+    db_session.add(
+        User(email="dupe@example.com", hashed_password="h2", display_name="B")
+    )
     with pytest.raises(IntegrityError):
         await db_session.commit()
 
@@ -75,7 +83,9 @@ async def test_create_media_asset(db_session):
     db_session.add(asset)
     await db_session.commit()
 
-    result = await db_session.execute(select(MediaAsset).where(MediaAsset.project_id == project.id))
+    result = await db_session.execute(
+        select(MediaAsset).where(MediaAsset.project_id == project.id)
+    )
     a = result.scalar_one()
     assert a.filename == "clip01.mp4"
     assert a.size_bytes == 1_000_000

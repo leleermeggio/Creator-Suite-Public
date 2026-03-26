@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +72,8 @@ async def list_reviews(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Review).where(Review.project_id == project_id)
+        select(Review)
+        .where(Review.project_id == project_id)
         .order_by(Review.created_at.desc())
     )
     return list(result.scalars().all())

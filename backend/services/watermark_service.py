@@ -49,15 +49,32 @@ def add_watermark(
     )
 
     cmd = [
-        "ffmpeg", "-i", video_path, "-i", watermark_path,
-        "-filter_complex", filter_complex,
-        "-map", "[out]", "-map", "0:a?",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-i",
+        watermark_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "-c:a",
+        "copy",
+        "-y",
+        output_path,
     ]
 
-    logger.info("Adding watermark to %s (pos=%s, opacity=%.1f)", video_path, position, opacity)
+    logger.info(
+        "Adding watermark to %s (pos=%s, opacity=%.1f)", video_path, position, opacity
+    )
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path
 
@@ -107,11 +124,21 @@ def add_text_watermark(
     )
 
     cmd = [
-        "ffmpeg", "-i", video_path,
-        "-vf", drawtext,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-vf",
+        drawtext,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "-c:a",
+        "copy",
+        "-y",
+        output_path,
     ]
 
     logger.info("Adding text watermark '%s' to %s", text, video_path)

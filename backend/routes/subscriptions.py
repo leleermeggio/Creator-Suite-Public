@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,7 +38,11 @@ async def get_my_subscription(
     sub_status = "active"
     if sub:
         plan = sub.plan.value if isinstance(sub.plan, PlanTier) else sub.plan
-        sub_status = sub.status.value if isinstance(sub.status, SubscriptionStatus) else sub.status
+        sub_status = (
+            sub.status.value
+            if isinstance(sub.status, SubscriptionStatus)
+            else sub.status
+        )
 
     limits = get_plan_limits(plan)
 
@@ -46,7 +50,9 @@ async def get_my_subscription(
     for counter_type in ["ai_jobs_day", "exports_day"]:
         usage[counter_type] = await get_usage(user.id, counter_type, db)
 
-    return SubscriptionResponse(plan=plan, status=sub_status, limits=limits, usage=usage)
+    return SubscriptionResponse(
+        plan=plan, status=sub_status, limits=limits, usage=usage
+    )
 
 
 @router.post("/upgrade", response_model=SubscriptionResponse)
@@ -61,7 +67,9 @@ async def upgrade_plan(
     sub = result.scalar_one_or_none()
 
     if sub is None:
-        sub = Subscription(user_id=user.id, plan=body.plan, status=SubscriptionStatus.ACTIVE)
+        sub = Subscription(
+            user_id=user.id, plan=body.plan, status=SubscriptionStatus.ACTIVE
+        )
         db.add(sub)
     else:
         sub.plan = body.plan

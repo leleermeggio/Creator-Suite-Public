@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from backend.services.graphics_template_service import get_template, list_templates, TEMPLATES
+from backend.services.graphics_template_service import (
+    get_template,
+    list_templates,
+    TEMPLATES,
+)
 
 
 def test_list_templates_returns_all():

@@ -56,7 +56,9 @@ async def text_to_speech(
         os.close(fd)
 
     voice = TTS_VOICES.get(language, TTS_VOICES["it"])
-    logger.info("TTS: generating speech (%s, voice=%s, %d chars)", language, voice, len(text))
+    logger.info(
+        "TTS: generating speech (%s, voice=%s, %d chars)", language, voice, len(text)
+    )
 
     try:
         communicate = edge_tts.Communicate(text, voice)

@@ -39,13 +39,15 @@ def search_transcriptions(
                 continue
 
             score = len(overlap) / max(len(query_words), 1)
-            results.append({
-                "asset_id": asset_id,
-                "start": seg.get("start", 0),
-                "end": seg.get("end", 0),
-                "text": text,
-                "relevance_score": round(score, 3),
-            })
+            results.append(
+                {
+                    "asset_id": asset_id,
+                    "start": seg.get("start", 0),
+                    "end": seg.get("end", 0),
+                    "text": text,
+                    "relevance_score": round(score, 3),
+                }
+            )
 
     results.sort(key=lambda r: r["relevance_score"], reverse=True)
     return results[:50]
@@ -77,6 +79,7 @@ async def search_with_gemini(
 
     try:
         import google.generativeai as genai
+
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-2.0-flash")
 
@@ -93,7 +96,7 @@ async def search_with_gemini(
 
         prompt = (
             f"Given the following timestamped transcription segments from video assets, "
-            f"find the segments most relevant to this query: \"{query}\"\n\n"
+            f'find the segments most relevant to this query: "{query}"\n\n'
             f"Transcription segments:\n{context}\n\n"
             f"Return a JSON array of the top 10 most relevant results with format: "
             f'[{{"asset_id": "...", "start": 0.0, "end": 0.0, "text": "...", "relevance_score": 0.0-1.0}}]'

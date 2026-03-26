@@ -13,11 +13,14 @@ async def test_protected_route_no_token(client):
 @pytest.mark.asyncio
 async def test_protected_route_with_valid_token(client):
     """Accessing a protected route with a valid token should return user info."""
-    reg = await client.post("/auth/register", json={
-        "email": "me@example.com",
-        "password": "StrongPass1!",
-        "display_name": "Me User",
-    })
+    reg = await client.post(
+        "/auth/register",
+        json={
+            "email": "me@example.com",
+            "password": "StrongPass1!",
+            "display_name": "Me User",
+        },
+    )
     token = reg.json()["access_token"]
 
     resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})

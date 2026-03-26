@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,6 +44,8 @@ async def list_projects(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Project).where(Project.user_id == user.id).order_by(Project.created_at.desc())
+        select(Project)
+        .where(Project.user_id == user.id)
+        .order_by(Project.created_at.desc())
     )
     return list(result.scalars().all())

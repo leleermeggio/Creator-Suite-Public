@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import subprocess
 import tempfile
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +43,21 @@ def transcribe_audio(
     for seg in result.get("segments", []):
         words = []
         for w in seg.get("words", []):
-            words.append({
-                "word": w["word"].strip(),
-                "start": round(w["start"], 3),
-                "end": round(w["end"], 3),
-            })
-        segments.append({
-            "start": round(seg["start"], 3),
-            "end": round(seg["end"], 3),
-            "text": seg["text"].strip(),
-            "words": words,
-        })
+            words.append(
+                {
+                    "word": w["word"].strip(),
+                    "start": round(w["start"], 3),
+                    "end": round(w["end"], 3),
+                }
+            )
+        segments.append(
+            {
+                "start": round(seg["start"], 3),
+                "end": round(seg["end"], 3),
+                "text": seg["text"].strip(),
+                "words": words,
+            }
+        )
 
     return {
         "text": result.get("text", "").strip(),
@@ -74,9 +76,18 @@ def extract_audio(video_path: str, output_path: str | None = None) -> str:
         os.close(fd)
 
     cmd = [
-        "ffmpeg", "-i", video_path,
-        "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-vn",
+        "-acodec",
+        "pcm_s16le",
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        "-y",
+        output_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path

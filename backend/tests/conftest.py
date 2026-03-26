@@ -7,7 +7,6 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from backend.database import Base
 
@@ -35,15 +34,19 @@ async def app(tmp_path, monkeypatch):
     priv = key_dir / "private.pem"
     pub = key_dir / "public.pem"
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    priv.write_bytes(private_key.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.TraditionalOpenSSL,
-        serialization.NoEncryption(),
-    ))
-    pub.write_bytes(private_key.public_key().public_bytes(
-        serialization.Encoding.PEM,
-        serialization.PublicFormat.SubjectPublicKeyInfo,
-    ))
+    priv.write_bytes(
+        private_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.TraditionalOpenSSL,
+            serialization.NoEncryption(),
+        )
+    )
+    pub.write_bytes(
+        private_key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+    )
 
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     monkeypatch.setenv("JWT_PRIVATE_KEY_PATH", str(priv))
@@ -51,6 +54,7 @@ async def app(tmp_path, monkeypatch):
 
     # Clear cached settings
     from backend.config import get_settings
+
     get_settings.cache_clear()
 
     # Ensure all models are registered with Base.metadata before create_all
@@ -64,6 +68,7 @@ async def app(tmp_path, monkeypatch):
         await conn.run_sync(Base.metadata.create_all)
 
     from backend.main import create_app
+
     application = create_app(session_factory=session_factory)
 
     # Disable rate limiting by default so tests don't interfere with each other
@@ -80,5 +85,7 @@ async def app(tmp_path, monkeypatch):
 @pytest_asyncio.fixture
 async def client(app):
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=True) as c:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=True
+    ) as c:
         yield c

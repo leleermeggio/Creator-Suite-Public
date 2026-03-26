@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,13 +45,15 @@ async def ingest_events(
     """Accept a batch of analytics events (up to 100)."""
     records = []
     for ev in body.events:
-        records.append(AnalyticsEvent(
-            user_id=user.id,
-            event_type=ev.event_type,
-            event_data=ev.event_data,
-            device_info=ev.device_info,
-            app_version=ev.app_version,
-        ))
+        records.append(
+            AnalyticsEvent(
+                user_id=user.id,
+                event_type=ev.event_type,
+                event_data=ev.event_data,
+                device_info=ev.device_info,
+                app_version=ev.app_version,
+            )
+        )
     db.add_all(records)
     await db.commit()
     return {"accepted": len(records)}

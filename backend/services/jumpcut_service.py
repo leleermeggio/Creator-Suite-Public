@@ -19,9 +19,14 @@ def detect_silence(
     Returns list of {start, end, duration} for each silence segment.
     """
     cmd = [
-        "ffmpeg", "-i", audio_path,
-        "-af", f"silencedetect=noise={silence_threshold}dB:d={min_silence_duration}",
-        "-f", "null", "-",
+        "ffmpeg",
+        "-i",
+        audio_path,
+        "-af",
+        f"silencedetect=noise={silence_threshold}dB:d={min_silence_duration}",
+        "-f",
+        "null",
+        "-",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     stderr = result.stderr
@@ -31,18 +36,22 @@ def detect_silence(
     for line in stderr.split("\n"):
         if "silence_start:" in line:
             try:
-                current_start = float(line.split("silence_start:")[1].strip().split()[0])
+                current_start = float(
+                    line.split("silence_start:")[1].strip().split()[0]
+                )
             except (ValueError, IndexError):
                 continue
         elif "silence_end:" in line and current_start is not None:
             try:
                 parts = line.split("silence_end:")[1].strip().split()
                 end = float(parts[0])
-                silences.append({
-                    "start": round(current_start, 3),
-                    "end": round(end, 3),
-                    "duration": round(end - current_start, 3),
-                })
+                silences.append(
+                    {
+                        "start": round(current_start, 3),
+                        "end": round(end, 3),
+                        "duration": round(end - current_start, 3),
+                    }
+                )
                 current_start = None
             except (ValueError, IndexError):
                 continue
@@ -76,9 +85,14 @@ def compute_keep_segments(
 def get_duration(file_path: str) -> float:
     """Get media duration in seconds using ffprobe."""
     cmd = [
-        "ffprobe", "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "json", file_path,
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "json",
+        file_path,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     data = json.loads(result.stdout)
@@ -113,15 +127,32 @@ def render_jumpcut(
         concat_inputs.append(f"[v{i}][a{i}]")
 
     filter_complex = "".join(filter_parts)
-    filter_complex += "".join(concat_inputs) + f"concat=n={len(keep_segments)}:v=1:a=1[outv][outa]"
+    filter_complex += (
+        "".join(concat_inputs) + f"concat=n={len(keep_segments)}:v=1:a=1[outv][outa]"
+    )
 
     cmd = [
-        "ffmpeg", "-i", input_path,
-        "-filter_complex", filter_complex,
-        "-map", "[outv]", "-map", "[outa]",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "aac", "-b:a", "128k",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        input_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[outv]",
+        "-map",
+        "[outa]",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-y",
+        output_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path

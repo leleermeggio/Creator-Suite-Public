@@ -13,6 +13,7 @@ router = APIRouter(tags=["tools"])
 
 # ── Request / Response schemas ────────────────────────────────────────────────
 
+
 class TranslateRequest(BaseModel):
     text: str = Field(min_length=1, max_length=10000)
     target_language: str = Field(min_length=2, max_length=5)
@@ -31,6 +32,7 @@ class ToolResult(BaseModel):
 
 
 # ── Gemini helper ─────────────────────────────────────────────────────────────
+
 
 async def _call_gemini(
     client: httpx.AsyncClient,
@@ -61,18 +63,14 @@ async def _call_gemini(
         # Safety-blocked or empty response
         block_reason = data.get("promptFeedback", {}).get("blockReason", "unknown")
         raise ValueError(f"Gemini returned no candidates (blockReason={block_reason})")
-    text = (
-        candidates[0]
-        .get("content", {})
-        .get("parts", [{}])[0]
-        .get("text")
-    )
+    text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text")
     if not text:
         raise ValueError("Empty text in Gemini response")
     return text
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.post("/translate", response_model=ToolResult)
 async def translate(

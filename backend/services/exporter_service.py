@@ -10,24 +10,44 @@ logger = logging.getLogger(__name__)
 # Format presets: {preset_name: {width, height, aspect, codec, bitrate, fps}}
 FORMAT_PRESETS = {
     "youtube_1080p": {
-        "width": 1920, "height": 1080, "aspect": "16:9",
-        "codec": "libx264", "bitrate": "8M", "fps": 30,
+        "width": 1920,
+        "height": 1080,
+        "aspect": "16:9",
+        "codec": "libx264",
+        "bitrate": "8M",
+        "fps": 30,
     },
     "youtube_shorts": {
-        "width": 1080, "height": 1920, "aspect": "9:16",
-        "codec": "libx264", "bitrate": "6M", "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "aspect": "9:16",
+        "codec": "libx264",
+        "bitrate": "6M",
+        "fps": 30,
     },
     "tiktok": {
-        "width": 1080, "height": 1920, "aspect": "9:16",
-        "codec": "libx264", "bitrate": "6M", "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "aspect": "9:16",
+        "codec": "libx264",
+        "bitrate": "6M",
+        "fps": 30,
     },
     "instagram_reel": {
-        "width": 1080, "height": 1920, "aspect": "9:16",
-        "codec": "libx264", "bitrate": "5M", "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "aspect": "9:16",
+        "codec": "libx264",
+        "bitrate": "5M",
+        "fps": 30,
     },
     "custom": {
-        "width": 1920, "height": 1080, "aspect": "16:9",
-        "codec": "libx264", "bitrate": "8M", "fps": 30,
+        "width": 1920,
+        "height": 1080,
+        "aspect": "16:9",
+        "codec": "libx264",
+        "bitrate": "8M",
+        "fps": 30,
     },
 }
 
@@ -77,12 +97,27 @@ def render_export(
     )
 
     cmd = [
-        "ffmpeg", "-i", input_path,
-        "-vf", vf,
-        "-c:v", codec, "-b:v", bitrate, "-preset", "medium",
-        "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-        "-movflags", "+faststart",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        input_path,
+        "-vf",
+        vf,
+        "-c:v",
+        codec,
+        "-b:v",
+        bitrate,
+        "-preset",
+        "medium",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-ar",
+        "44100",
+        "-movflags",
+        "+faststart",
+        "-y",
+        output_path,
     ]
 
     logger.info("Rendering export: %s → %s (%s)", input_path, output_path, preset_name)
@@ -119,13 +154,28 @@ def render_concat(
         preset = get_preset(preset_name)
 
         cmd = [
-            "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
-            "-vf", f"scale={preset['width']}:{preset['height']}:force_original_aspect_ratio=decrease,"
-                   f"pad={preset['width']}:{preset['height']}:(ow-iw)/2:(oh-ih)/2:black",
-            "-c:v", preset["codec"], "-b:v", preset["bitrate"],
-            "-c:a", "aac", "-b:a", "128k",
-            "-movflags", "+faststart",
-            "-y", output_path,
+            "ffmpeg",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            list_path,
+            "-vf",
+            f"scale={preset['width']}:{preset['height']}:force_original_aspect_ratio=decrease,"
+            f"pad={preset['width']}:{preset['height']}:(ow-iw)/2:(oh-ih)/2:black",
+            "-c:v",
+            preset["codec"],
+            "-b:v",
+            preset["bitrate"],
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-movflags",
+            "+faststart",
+            "-y",
+            output_path,
         ]
         subprocess.run(cmd, check=True, capture_output=True)
     finally:

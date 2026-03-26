@@ -25,9 +25,13 @@ async def test_rate_limit_enforced_on_auth(client):
     """Auth endpoints should eventually return 429 when rate limit is exceeded."""
     statuses = []
     for _ in range(120):
-        resp = await client.post("/auth/login", json={
-            "email": "spam@example.com", "password": "x",
-        })
+        resp = await client.post(
+            "/auth/login",
+            json={
+                "email": "spam@example.com",
+                "password": "x",
+            },
+        )
         statuses.append(resp.status_code)
         if resp.status_code == 429:
             break

@@ -28,9 +28,15 @@ def normalize_audio(
         os.close(fd)
 
     cmd = [
-        "ffmpeg", "-i", input_path,
-        "-af", f"loudnorm=I={target_lufs}:TP=-1.5:LRA=11",
-        "-ar", "44100", "-y", output_path,
+        "ffmpeg",
+        "-i",
+        input_path,
+        "-af",
+        f"loudnorm=I={target_lufs}:TP=-1.5:LRA=11",
+        "-ar",
+        "44100",
+        "-y",
+        output_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path
@@ -58,9 +64,13 @@ def reduce_noise_ffmpeg(
         os.close(fd)
 
     cmd = [
-        "ffmpeg", "-i", input_path,
-        "-af", f"afftdn=nf={noise_floor}",
-        "-y", output_path,
+        "ffmpeg",
+        "-i",
+        input_path,
+        "-af",
+        f"afftdn=nf={noise_floor}",
+        "-y",
+        output_path,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
     return output_path
@@ -79,9 +89,13 @@ def separate_vocals_demucs(
 
     try:
         cmd = [
-            "python", "-m", "demucs",
-            "--two-stems", "vocals",
-            "-o", output_dir,
+            "python",
+            "-m",
+            "demucs",
+            "--two-stems",
+            "vocals",
+            "-o",
+            output_dir,
             input_path,
         ]
         subprocess.run(cmd, check=True, capture_output=True)

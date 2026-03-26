@@ -65,7 +65,8 @@ async def list_jobs(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Job).where(Job.project_id == project_id, Job.user_id == user.id)
+        select(Job)
+        .where(Job.project_id == project_id, Job.user_id == user.id)
         .order_by(Job.created_at.desc())
     )
     return list(result.scalars().all())

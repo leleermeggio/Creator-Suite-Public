@@ -63,7 +63,9 @@ async def get_usage(user_id: str, counter_type: str, db: AsyncSession) -> int:
     return counter.current_value if counter else 0
 
 
-async def increment_usage(user_id: str, counter_type: str, db: AsyncSession, amount: int = 1) -> int:
+async def increment_usage(
+    user_id: str, counter_type: str, db: AsyncSession, amount: int = 1
+) -> int:
     """Increment a usage counter. Creates the counter if it doesn't exist.
 
     Returns the new value.
@@ -90,7 +92,9 @@ async def increment_usage(user_id: str, counter_type: str, db: AsyncSession, amo
     return counter.current_value
 
 
-async def check_quota(user_id: str, counter_type: str, db: AsyncSession) -> tuple[bool, int, int]:
+async def check_quota(
+    user_id: str, counter_type: str, db: AsyncSession
+) -> tuple[bool, int, int]:
     """Check if user is within quota for a given counter type.
 
     Returns:

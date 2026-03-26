@@ -34,10 +34,13 @@ def _get_db_dependency(session_factory: async_sessionmaker[AsyncSession]):
     async def dep():
         async with session_factory() as session:
             yield session
+
     return dep
 
 
-def create_app(session_factory: async_sessionmaker[AsyncSession] | None = None) -> FastAPI:
+def create_app(
+    session_factory: async_sessionmaker[AsyncSession] | None = None,
+) -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(title="Creator Suite API", version="0.1.0")
@@ -64,6 +67,7 @@ def create_app(session_factory: async_sessionmaker[AsyncSession] | None = None) 
     # Database dependency — always configured (production uses settings, tests inject their own)
     if session_factory is None:
         from backend.database import Base, create_engine, create_session_factory
+
         engine = create_engine(settings.DATABASE_URL)
         session_factory = create_session_factory(engine)
 
@@ -71,6 +75,7 @@ def create_app(session_factory: async_sessionmaker[AsyncSession] | None = None) 
         @app.on_event("startup")
         async def _create_tables():
             import backend.models  # noqa: F401 — ensure all models are imported
+
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
 

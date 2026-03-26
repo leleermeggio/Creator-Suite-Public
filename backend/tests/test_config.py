@@ -1,7 +1,3 @@
-import os
-import pytest
-
-
 def test_settings_loads_from_env(monkeypatch):
     """Settings should load all required values from environment."""
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost/test")
@@ -37,7 +33,9 @@ def test_settings_custom_origins(monkeypatch):
     monkeypatch.setenv("R2_ACCESS_KEY_ID", "key")
     monkeypatch.setenv("R2_SECRET_ACCESS_KEY", "secret")
     monkeypatch.setenv("R2_BUCKET_NAME", "bucket")
-    monkeypatch.setenv("ALLOWED_ORIGINS", "https://app.example.com,https://api.example.com")
+    monkeypatch.setenv(
+        "ALLOWED_ORIGINS", "https://app.example.com,https://api.example.com"
+    )
 
     from backend.config import Settings
 

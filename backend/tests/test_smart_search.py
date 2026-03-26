@@ -9,7 +9,11 @@ def test_search_transcriptions_finds_matching_segments():
             "asset_id": "asset-1",
             "segments": [
                 {"start": 0.0, "end": 5.0, "text": "Welcome to the cooking show"},
-                {"start": 5.0, "end": 10.0, "text": "Today we make pasta with tomato sauce"},
+                {
+                    "start": 5.0,
+                    "end": 10.0,
+                    "text": "Today we make pasta with tomato sauce",
+                },
                 {"start": 10.0, "end": 15.0, "text": "First step is to boil the water"},
             ],
         },
@@ -17,7 +21,11 @@ def test_search_transcriptions_finds_matching_segments():
             "asset_id": "asset-2",
             "segments": [
                 {"start": 0.0, "end": 5.0, "text": "This is a gaming video"},
-                {"start": 5.0, "end": 10.0, "text": "Let me show you the best strategy"},
+                {
+                    "start": 5.0,
+                    "end": 10.0,
+                    "text": "Let me show you the best strategy",
+                },
             ],
         },
     ]

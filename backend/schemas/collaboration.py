@@ -10,6 +10,7 @@ from backend.models.team import TeamRole
 
 # --- Teams ---
 
+
 class TeamCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
@@ -43,6 +44,7 @@ class TeamMemberResponse(BaseModel):
 
 # --- Project Sharing ---
 
+
 class ProjectShareRequest(BaseModel):
     user_id: str
     role: ProjectRole = ProjectRole.VIEWER
@@ -58,6 +60,7 @@ class ProjectMemberResponse(BaseModel):
 
 
 # --- Comments ---
+
 
 class CommentCreate(BaseModel):
     text: str = Field(min_length=1, max_length=5000)

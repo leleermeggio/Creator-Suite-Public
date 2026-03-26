@@ -3,9 +3,19 @@ from __future__ import annotations
 import uuid
 
 ALLOWED_MEDIA_TYPES = {
-    "video/mp4", "video/quicktime", "video/x-matroska", "video/webm",
-    "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-wav",
-    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "video/mp4",
+    "video/quicktime",
+    "video/x-matroska",
+    "video/webm",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/x-wav",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
 }
 
 

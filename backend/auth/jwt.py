@@ -20,9 +20,7 @@ def create_access_token(
     return jwt.encode(payload, private_key, algorithm="RS256")
 
 
-def create_refresh_token(
-    user_id: str, private_key: str, expire_days: int = 30
-) -> str:
+def create_refresh_token(user_id: str, private_key: str, expire_days: int = 30) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": user_id,

@@ -18,7 +18,7 @@ security = HTTPBearer()
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Placeholder — overridden at app startup with real session factory."""
     raise RuntimeError("Database session not configured")
-    yield  # noqa: unreachable — makes this a generator
+    yield  # noqa: F401 — makes this a generator
 
 
 async def get_current_user(
@@ -34,13 +34,19 @@ async def get_current_user(
     try:
         payload = decode_token(credentials.credentials, public_key)
     except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
     if payload.get("type") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not an access token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not an access token"
+        )
 
     result = await db.execute(select(User).where(User.id == payload["sub"]))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
     return user

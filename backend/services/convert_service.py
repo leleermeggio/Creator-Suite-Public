@@ -9,14 +9,14 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 CONVERT_FORMATS = {
-    "mp3":  ["-vn", "-codec:a", "libmp3lame", "-q:a", "2"],
-    "wav":  ["-vn", "-codec:a", "pcm_s16le"],
-    "ogg":  ["-vn", "-codec:a", "libvorbis", "-q:a", "5"],
+    "mp3": ["-vn", "-codec:a", "libmp3lame", "-q:a", "2"],
+    "wav": ["-vn", "-codec:a", "pcm_s16le"],
+    "ogg": ["-vn", "-codec:a", "libvorbis", "-q:a", "5"],
     "flac": ["-vn", "-codec:a", "flac"],
-    "aac":  ["-vn", "-codec:a", "aac", "-b:a", "192k"],
-    "m4a":  ["-vn", "-codec:a", "aac", "-b:a", "192k"],
-    "mp4":  ["-codec:v", "libx264", "-preset", "fast", "-codec:a", "aac"],
-    "mkv":  ["-codec:v", "copy", "-codec:a", "copy"],
+    "aac": ["-vn", "-codec:a", "aac", "-b:a", "192k"],
+    "m4a": ["-vn", "-codec:a", "aac", "-b:a", "192k"],
+    "mp4": ["-codec:v", "libx264", "-preset", "fast", "-codec:a", "aac"],
+    "mkv": ["-codec:v", "copy", "-codec:a", "copy"],
     "webm": ["-codec:v", "libvpx-vp9", "-codec:a", "libopus"],
 }
 
@@ -62,5 +62,7 @@ def convert_media(
     subprocess.run(cmd, check=True, capture_output=True, timeout=300)
 
     size_mb = os.path.getsize(output_path) / (1024 * 1024)
-    logger.info("Converted: %s → .%s (%.1f MB)", Path(input_path).name, target_format, size_mb)
+    logger.info(
+        "Converted: %s → .%s (%.1f MB)", Path(input_path).name, target_format, size_mb
+    )
     return output_path

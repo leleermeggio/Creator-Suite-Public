@@ -64,9 +64,12 @@ def download_from_url(
         # Determine mime type from extension
         ext = os.path.splitext(filename)[1].lower()
         mime_map = {
-            ".mp4": "video/mp4", ".mkv": "video/x-matroska",
-            ".webm": "video/webm", ".mp3": "audio/mpeg",
-            ".m4a": "audio/mp4", ".wav": "audio/wav",
+            ".mp4": "video/mp4",
+            ".mkv": "video/x-matroska",
+            ".webm": "video/webm",
+            ".mp3": "audio/mpeg",
+            ".m4a": "audio/mp4",
+            ".wav": "audio/wav",
             ".ogg": "audio/ogg",
         }
         mime_type = mime_map.get(ext, "application/octet-stream")

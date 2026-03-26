@@ -4,11 +4,14 @@ import pytest
 
 
 async def _register_and_get_token(client) -> str:
-    resp = await client.post("/auth/register", json={
-        "email": "captionuser@example.com",
-        "password": "StrongPass1!",
-        "display_name": "Caption User",
-    })
+    resp = await client.post(
+        "/auth/register",
+        json={
+            "email": "captionuser@example.com",
+            "password": "StrongPass1!",
+            "display_name": "Caption User",
+        },
+    )
     return resp.json()["access_token"]
 
 
@@ -27,11 +30,15 @@ async def test_generate_caption(client):
     project_id = await _create_project(client, token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await client.post("/captions/generate", json={
-        "project_id": project_id,
-        "language": "it",
-        "style_preset": "bold_center",
-    }, headers=headers)
+    resp = await client.post(
+        "/captions/generate",
+        json={
+            "project_id": project_id,
+            "language": "it",
+            "style_preset": "bold_center",
+        },
+        headers=headers,
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["language"] == "it"
@@ -44,9 +51,13 @@ async def test_list_and_get_caption(client):
     project_id = await _create_project(client, token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await client.post("/captions/generate", json={
-        "project_id": project_id,
-    }, headers=headers)
+    resp = await client.post(
+        "/captions/generate",
+        json={
+            "project_id": project_id,
+        },
+        headers=headers,
+    )
     caption_id = resp.json()["id"]
 
     # List
@@ -66,16 +77,24 @@ async def test_update_caption(client):
     project_id = await _create_project(client, token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await client.post("/captions/generate", json={
-        "project_id": project_id,
-    }, headers=headers)
+    resp = await client.post(
+        "/captions/generate",
+        json={
+            "project_id": project_id,
+        },
+        headers=headers,
+    )
     caption_id = resp.json()["id"]
 
-    resp = await client.put(f"/captions/{caption_id}", json={
-        "font_size": 32,
-        "color": "#FF0000",
-        "position": "top",
-    }, headers=headers)
+    resp = await client.put(
+        f"/captions/{caption_id}",
+        json={
+            "font_size": 32,
+            "color": "#FF0000",
+            "position": "top",
+        },
+        headers=headers,
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["font_size"] == 32
@@ -89,15 +108,23 @@ async def test_translate_caption(client):
     project_id = await _create_project(client, token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await client.post("/captions/generate", json={
-        "project_id": project_id,
-        "language": "it",
-    }, headers=headers)
+    resp = await client.post(
+        "/captions/generate",
+        json={
+            "project_id": project_id,
+            "language": "it",
+        },
+        headers=headers,
+    )
     caption_id = resp.json()["id"]
 
-    resp = await client.post(f"/captions/{caption_id}/translate", json={
-        "target_language": "en",
-    }, headers=headers)
+    resp = await client.post(
+        f"/captions/{caption_id}/translate",
+        json={
+            "target_language": "en",
+        },
+        headers=headers,
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["language"] == "en"

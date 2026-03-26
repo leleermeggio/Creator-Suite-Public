@@ -41,7 +41,11 @@ async def _verify_project_access(
     return project
 
 
-@router.post("/extract-frame", response_model=ThumbnailResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/extract-frame",
+    response_model=ThumbnailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def extract_frame(
     body: ThumbnailExtractRequest,
     user: User = Depends(get_current_user),
@@ -61,7 +65,9 @@ async def extract_frame(
     return thumb
 
 
-@router.post("/generate", response_model=ThumbnailResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/generate", response_model=ThumbnailResponse, status_code=status.HTTP_201_CREATED
+)
 async def generate_thumbnail(
     body: ThumbnailGenerateRequest,
     user: User = Depends(get_current_user),
@@ -105,7 +111,9 @@ async def get_thumbnail(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Thumbnail).where(Thumbnail.id == thumbnail_id, Thumbnail.user_id == user.id)
+        select(Thumbnail).where(
+            Thumbnail.id == thumbnail_id, Thumbnail.user_id == user.id
+        )
     )
     thumb = result.scalar_one_or_none()
     if not thumb:
@@ -114,5 +122,7 @@ async def get_thumbnail(
     response = ThumbnailResponse.model_validate(thumb)
     if thumb.storage_key:
         r2 = _get_r2()
-        response.download_url = r2.generate_download_url(key=thumb.storage_key, expires_in=300)
+        response.download_url = r2.generate_download_url(
+            key=thumb.storage_key, expires_in=300
+        )
     return response

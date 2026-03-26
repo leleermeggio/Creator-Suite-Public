@@ -4,11 +4,14 @@ import pytest
 
 
 async def _register_and_get_token(client) -> str:
-    resp = await client.post("/auth/register", json={
-        "email": "jobuser@example.com",
-        "password": "StrongPass1!",
-        "display_name": "Job User",
-    })
+    resp = await client.post(
+        "/auth/register",
+        json={
+            "email": "jobuser@example.com",
+            "password": "StrongPass1!",
+            "display_name": "Job User",
+        },
+    )
     return resp.json()["access_token"]
 
 
@@ -34,11 +37,15 @@ async def test_create_and_get_job(client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # Create job
-    resp = await client.post("/jobs", json={
-        "project_id": project_id,
-        "type": "transcribe",
-        "input_params": {"language": "it"},
-    }, headers=headers)
+    resp = await client.post(
+        "/jobs",
+        json={
+            "project_id": project_id,
+            "type": "transcribe",
+            "input_params": {"language": "it"},
+        },
+        headers=headers,
+    )
     assert resp.status_code == 201
     job = resp.json()
     assert job["type"] == "transcribe"
@@ -58,12 +65,22 @@ async def test_list_jobs_for_project(client):
     project_id = await _create_project(client, token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    await client.post("/jobs", json={
-        "project_id": project_id, "type": "transcribe",
-    }, headers=headers)
-    await client.post("/jobs", json={
-        "project_id": project_id, "type": "jumpcut",
-    }, headers=headers)
+    await client.post(
+        "/jobs",
+        json={
+            "project_id": project_id,
+            "type": "transcribe",
+        },
+        headers=headers,
+    )
+    await client.post(
+        "/jobs",
+        json={
+            "project_id": project_id,
+            "type": "jumpcut",
+        },
+        headers=headers,
+    )
 
     resp = await client.get(f"/jobs?project_id={project_id}", headers=headers)
     assert resp.status_code == 200

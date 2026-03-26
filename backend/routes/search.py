@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,10 +54,14 @@ async def search_project(
     transcriptions = []
     for job in jobs:
         if job.result and "segments" in job.result:
-            transcriptions.append({
-                "asset_id": job.input_params.get("asset_id", job.id) if job.input_params else job.id,
-                "segments": job.result["segments"],
-            })
+            transcriptions.append(
+                {
+                    "asset_id": job.input_params.get("asset_id", job.id)
+                    if job.input_params
+                    else job.id,
+                    "segments": job.result["segments"],
+                }
+            )
 
     if not transcriptions:
         return []
