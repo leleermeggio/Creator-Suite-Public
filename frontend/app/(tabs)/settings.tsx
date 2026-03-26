@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   Switch,
+  TextInput,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -25,9 +26,10 @@ import {
 } from '@/constants/theme';
 
 const GEMINI_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
   'gemini-2.0-flash',
   'gemini-1.5-pro',
-  'gemini-1.5-flash',
 ];
 
 interface SettingRowProps {
@@ -87,6 +89,7 @@ function SettingRow({
 export default function SettingsScreen() {
   const { width } = useWindowDimensions();
   const { settings, update } = useSettings();
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const { logout } = useAuthContext();
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -103,11 +106,9 @@ export default function SettingsScreen() {
     }).start();
   }, []);
 
-  const cycleModel = () => {
-    const idx = GEMINI_MODELS.indexOf(settings.geminiModel);
-    const next = GEMINI_MODELS[(idx + 1) % GEMINI_MODELS.length];
-    update({ geminiModel: next });
-  };
+  useEffect(() => {
+    setApiKeyInput(settings.googleApiKey ?? '');
+  }, [settings.googleApiKey]);
 
   return (
     <View style={styles.container}>
@@ -137,19 +138,60 @@ export default function SettingsScreen() {
         {/* Account section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
-          <GlowCard
-            gradient={COLORS.gradCyan}
-            glowIntensity={0.1}
-            borderWidth={1}
-          >
+          <GlowCard gradient={COLORS.gradCyan} glowIntensity={0.1} borderWidth={1}>
             <View style={styles.settingsGroup}>
-              <SettingRow
-                icon="🧠"
-                label="Modello Gemini"
-                sublabel={settings.geminiModel}
-                onPress={cycleModel}
-                accentColor={COLORS.neonViolet}
-              />
+              {/* Google API Key */}
+              <View style={styles.settingRow}>
+                <Text style={styles.settingIcon}>🔑</Text>
+                <View style={styles.settingTextCol}>
+                  <Text style={styles.settingLabel}>Google API Key</Text>
+                  <Text style={styles.settingSublabel}>Richiesta per Riassumi e OCR</Text>
+                  <TextInput
+                    style={styles.apiKeyInput}
+                    value={apiKeyInput}
+                    onChangeText={setApiKeyInput}
+                    onBlur={() => update({ googleApiKey: apiKeyInput.trim() })}
+                    placeholder="AIza..."
+                    placeholderTextColor={COLORS.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {apiKeyInput.trim().length > 0 && (
+                    <Text style={styles.apiKeyStatus}>✅ Key salvata</Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              {/* Gemini Model Selector */}
+              <View style={styles.settingRow}>
+                <Text style={styles.settingIcon}>🧠</Text>
+                <View style={styles.settingTextCol}>
+                  <Text style={styles.settingLabel}>Modello Gemini</Text>
+                  <Text style={styles.settingSublabel}>{settings.geminiModel}</Text>
+                  <View style={styles.modelChips}>
+                    {GEMINI_MODELS.map(m => (
+                      <Pressable
+                        key={m}
+                        onPress={() => update({ geminiModel: m })}
+                        style={[
+                          styles.modelChip,
+                          settings.geminiModel === m && styles.modelChipActive,
+                        ]}
+                      >
+                        <Text style={[
+                          styles.modelChipText,
+                          settings.geminiModel === m && styles.modelChipTextActive,
+                        ]}>
+                          {m.replace('gemini-', '')}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              </View>
             </View>
           </GlowCard>
         </Animated.View>
@@ -302,6 +344,50 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.05)',
     marginLeft: 44,
+  },
+  apiKeyInput: {
+    marginTop: SPACING.sm,
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.bgElevated,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
+  },
+  apiKeyStatus: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 11,
+    color: COLORS.neonLime,
+    marginTop: SPACING.xs,
+  },
+  modelChips: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  modelChip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modelChipActive: {
+    borderColor: COLORS.neonCyan,
+    backgroundColor: COLORS.neonCyan + '15',
+  },
+  modelChipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  modelChipTextActive: {
+    color: COLORS.neonCyan,
   },
   logoutBtn: {
     borderWidth: 1.5,

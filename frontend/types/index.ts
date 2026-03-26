@@ -76,13 +76,15 @@ export interface Job {
 
 export interface AppSettings {
   geminiModel: string;
+  googleApiKey: string;
   notifications: boolean;
   autoProcess: boolean;
   highQuality: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  geminiModel: 'gemini-2.0-flash',
+  geminiModel: 'gemini-1.5-flash',
+  googleApiKey: '',
   notifications: true,
   autoProcess: false,
   highQuality: true,
