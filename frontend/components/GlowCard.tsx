@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -26,6 +26,8 @@ export function GlowCard({
   glowIntensity = 0.5,
   borderWidth = 1.5,
 }: GlowCardProps) {
+  const [hovered, setHovered] = useState(false);
+
   const content = (
     <View style={[styles.outer, style]}>
       {/* Glow background */}
@@ -61,8 +63,12 @@ export function GlowCard({
     return (
       <Pressable
         onPress={onPress}
+        {...(Platform.OS === 'web' ? {
+          onMouseEnter: () => setHovered(true),
+          onMouseLeave: () => setHovered(false),
+        } : {})}
         style={({ pressed }) => [
-          { transform: [{ scale: pressed ? 0.97 : 1 }] },
+          { transform: [{ scale: pressed ? 0.97 : hovered ? 1.015 : 1 }] },
           Platform.OS === 'web' && {
             cursor: 'pointer' as any,
             transition: 'transform 0.15s ease' as any,

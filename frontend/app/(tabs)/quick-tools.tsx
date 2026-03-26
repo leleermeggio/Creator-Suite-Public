@@ -96,7 +96,7 @@ export default function QuickToolsScreen() {
           ]}
         >
           {TOOLS.map((tool, index) => (
-            <View key={tool.id} style={{ width: cardWidth }}>
+            <View key={tool.id} style={{ width: cardWidth, opacity: tool.available ? 1 : 0.45 }}>
               <ToolCard
                 tool={tool}
                 index={index}

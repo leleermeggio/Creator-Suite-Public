@@ -30,6 +30,7 @@ export default function LoginScreen() {
 
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -37,6 +38,15 @@ export default function LoginScreen() {
       duration: 700,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -8, duration: 1500, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   const shake = () => {
@@ -83,7 +93,7 @@ export default function LoginScreen() {
           <Animated.View style={[styles.inner, { opacity: fadeAnim }]}>
             {/* Logo / Title */}
             <View style={styles.logoSection}>
-              <Text style={styles.logoIcon}>⚡</Text>
+              <Animated.Text style={[styles.logoIcon, { transform: [{ translateY: floatAnim }] }]}>⚡</Animated.Text>
               <GradientText gradient={COLORS.gradAurora} style={styles.logoText}>
                 CazZone
               </GradientText>
@@ -167,12 +177,12 @@ export default function LoginScreen() {
               </GlowCard>
             </Animated.View>
 
-            {/* Dev mode hint */}
-            <View style={styles.devHint}>
+            {/* Dev mode hint — hidden for demo */}
+            {/* <View style={styles.devHint}>
               <Text style={styles.devHintText}>
                 Test: dev@cazzone.local / CazZone2024!
               </Text>
-            </View>
+            </View> */}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

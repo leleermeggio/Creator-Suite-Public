@@ -317,6 +317,9 @@ export default function ToolScreen() {
               }
             </LinearGradient>
           </Pressable>
+          {isProcessing && (
+            <Text style={styles.processingHint}>✨ Elaborazione in corso...</Text>
+          )}
         </Animated.View>
 
         {error && (
@@ -385,6 +388,7 @@ const styles = StyleSheet.create({
   buttonContainer: { marginTop: SPACING.xl },
   processBtn: { borderRadius: RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
   processBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 16, color: COLORS.bg },
+  processingHint: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.sm },
   errorBox: { marginTop: SPACING.lg, padding: SPACING.md, borderRadius: RADIUS.md, backgroundColor: COLORS.neonPink + '15', borderWidth: 1, borderColor: COLORS.neonPink + '44' },
   errorText: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.neonPink },
   resultSection: { marginTop: SPACING.xxl, gap: SPACING.md },
