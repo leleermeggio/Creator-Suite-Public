@@ -159,7 +159,7 @@ async def summarize(
             elif code == 404:
                 detail = f"Model '{model}' not available. Change the model in Settings."
             elif code == 400:
-                detail = "Invalid API key. Check your Settings."
+                detail = "Request rejected by Gemini (400). Check your API key or the request content."
             else:
                 detail = f"Gemini error {code}. Please try again."
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
@@ -213,7 +213,7 @@ async def ocr(
             elif code == 404:
                 detail = f"Model '{model}' not available. Change the model in Settings."
             elif code == 400:
-                detail = "Invalid API key. Check your Settings."
+                detail = "Request rejected by Gemini (400). Check your API key or the request content."
             else:
                 detail = f"Gemini error {code}. Please try again."
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
