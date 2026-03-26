@@ -1,0 +1,65 @@
+# ── Secrets & environment ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/keys/
+*.pem
+*.key
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite3
+
+# ── Node / Expo ───────────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.expo/
+frontend/web-build/
+.expo-shared/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Logs & temp ───────────────────────────────────────────────────────────────
+logs/
+*.log
+downloads/
+audio/
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ── Claude / AI tooling ───────────────────────────────────────────────────────
+CLAUDE.local.md
+.claude/settings.local.json
+.superpowers/
+
+# ── Network share junction (avoid duplicate tracking) ─────────────────────────
+LA-BASE/
+
+# ── Misc build artifacts ──────────────────────────────────────────────────────
+*.local
+showcase.html
+bot.py.bak

@@ -1,0 +1,88 @@
+version: "3.8"
+
+services:
+  # ── Backend API ───────────────────────────────────────────────────────────
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: ./backend/.env
+    environment:
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8081,http://localhost:19006}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/keys:/app/backend/keys:ro
+
+  # ── Celery Worker ─────────────────────────────────────────────────────────
+  worker:
+    build: ./backend
+    command: celery -A backend.workers.celery_app worker --loglevel=info --concurrency=2
+    env_file: ./backend/.env
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/keys:/app/backend/keys:ro
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: creator
+      POSTGRES_PASSWORD: creator
+      POSTGRES_DB: creator_suite
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creator"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Frontend (Expo Web) ───────────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "8081:8081"
+    command: sh -c "npm install && npx expo start --web --port 8081"
+    environment:
+      - EXPO_NO_DOTENV=1
+    depends_on:
+      - api
+
+  # ── Telegram Bot ──────────────────────────────────────────────────────────
+  cazzone-bot:
+    build: .
+    container_name: cazzone-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./cookies:/app/cookies:ro
+      - ./logs:/app/logs
+      - ./audio:/app/audio
+
+volumes:
+  pgdata:
