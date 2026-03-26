@@ -3,10 +3,15 @@ import { post } from './apiClient';
 export async function translateText(
   text: string,
   targetLang: string,
-  _apiKey?: string,
-  _model?: string,
+  apiKey?: string,
+  model?: string,
 ): Promise<string> {
-  const res = await post<{ result: string }>('/tools/translate', { text, target_language: targetLang });
+  const res = await post<{ result: string }>('/tools/translate', {
+    text,
+    target_language: targetLang,
+    api_key: apiKey || undefined,
+    model: model || undefined,
+  });
   return res.result;
 }
 

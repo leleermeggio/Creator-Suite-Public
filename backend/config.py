@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # AI / Processing
     GOOGLE_API_KEY: str = ""
     WHISPER_MODEL: str = "small"
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
 
     model_config = {"env_file": str(_ENV_FILE), "extra": "ignore"}
 

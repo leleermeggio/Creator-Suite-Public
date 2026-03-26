@@ -16,15 +16,21 @@ router = APIRouter(tags=["tools"])
 
 class TranslateRequest(BaseModel):
     text: str = Field(min_length=1, max_length=10000)
-    target_language: str = Field(min_length=2, max_length=5)
+    target_language: str = Field(min_length=2, max_length=10)
+    api_key: str | None = None
+    model: str | None = None
 
 
 class SummarizeRequest(BaseModel):
     text: str = Field(min_length=1, max_length=50000)
+    api_key: str | None = None
+    model: str | None = None
 
 
 class OcrRequest(BaseModel):
     image_base64: str = Field(min_length=1, max_length=5_000_000)
+    api_key: str | None = None
+    model: str | None = None
 
 
 class ToolResult(BaseModel):
@@ -78,14 +84,15 @@ async def translate(
     _user: User = Depends(get_current_user),
 ) -> ToolResult:
     settings = get_settings()
+    api_key = body.api_key or settings.GOOGLE_API_KEY
 
     async with httpx.AsyncClient() as client:
-        if settings.GOOGLE_API_KEY:
+        if api_key:
             try:
                 translated = await _call_gemini(
                     client=client,
-                    api_key=settings.GOOGLE_API_KEY,
-                    model=settings.GEMINI_MODEL,
+                    api_key=api_key,
+                    model=body.model or settings.GEMINI_MODEL,
                     system_prompt=(
                         f"You are a translator. Translate the text to {body.target_language}. "
                         "Return only the translation."
@@ -94,23 +101,21 @@ async def translate(
                 )
                 return ToolResult(result=translated)
             except Exception:
-                pass  # fall through to MyMemory
+                pass  # fall through to deep-translator
 
-        # MyMemory fallback
-        resp = await client.get(
-            "https://api.mymemory.translated.net/get",
-            params={"q": body.text, "langpair": f"auto|{body.target_language}"},
-            timeout=15.0,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get("responseStatus") not in (200, "200"):
+        # Fallback: deep-translator with auto language detection
+        import asyncio
+        from deep_translator import GoogleTranslator
+        try:
+            translated = await asyncio.to_thread(
+                lambda: GoogleTranslator(source="auto", target=body.target_language).translate(body.text)
+            )
+            return ToolResult(result=translated or body.text)
+        except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=data.get("responseDetails", "Translation service unavailable"),
-            )
-        translated = data.get("responseData", {}).get("translatedText") or body.text
-        return ToolResult(result=translated)
+                detail="Servizio di traduzione non disponibile",
+            ) from exc
 
 
 @router.post("/summarize", response_model=ToolResult)
@@ -119,26 +124,28 @@ async def summarize(
     _user: User = Depends(get_current_user),
 ) -> ToolResult:
     settings = get_settings()
-    if not settings.GOOGLE_API_KEY:
+    api_key = body.api_key or settings.GOOGLE_API_KEY
+    if not api_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="GOOGLE_API_KEY not configured on server",
+            detail="Google API Key richiesta. Aggiungila nelle Impostazioni.",
         )
 
     async with httpx.AsyncClient() as client:
         try:
             result = await _call_gemini(
                 client=client,
-                api_key=settings.GOOGLE_API_KEY,
-                model=settings.GEMINI_MODEL,
+                api_key=api_key,
+                model=body.model or settings.GEMINI_MODEL,
                 system_prompt="Sei un assistente che riassume testi in modo conciso.",
                 user_content=f"Riassumi il seguente testo in modo conciso con bullet points:\n\n{body.text}",
             )
-        except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"AI service error: {exc}",
-            ) from exc
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            detail = "Troppe richieste, riprova tra qualche secondo." if status_code == 429 else f"Gemini error {status_code}"
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
+        except (httpx.RequestError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable") from exc
     return ToolResult(result=result)
 
 
@@ -148,10 +155,11 @@ async def ocr(
     _user: User = Depends(get_current_user),
 ) -> ToolResult:
     settings = get_settings()
-    if not settings.GOOGLE_API_KEY:
+    api_key = body.api_key or settings.GOOGLE_API_KEY
+    if not api_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="GOOGLE_API_KEY not configured on server",
+            detail="Google API Key richiesta. Aggiungila nelle Impostazioni.",
         )
 
     parts = [
@@ -168,14 +176,15 @@ async def ocr(
         try:
             result = await _call_gemini(
                 client=client,
-                api_key=settings.GOOGLE_API_KEY,
-                model=settings.GEMINI_MODEL,
+                api_key=api_key,
+                model=body.model or settings.GEMINI_MODEL,
                 system_prompt="Sei un assistente OCR. Restituisci solo il testo estratto dall'immagine.",
                 user_content=parts,
             )
-        except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"AI service error: {exc}",
-            ) from exc
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            detail = "Troppe richieste, riprova tra qualche secondo." if status_code == 429 else f"Gemini error {status_code}"
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
+        except (httpx.RequestError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI service unavailable") from exc
     return ToolResult(result=result)
