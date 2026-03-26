@@ -26,6 +26,8 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState('');
   const [batchResults, setBatchResults] = useState<Map<SocialFormat, string | null> | null>(null);
@@ -42,15 +44,16 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
     if (!prompt.trim()) return;
     setLoading(true);
     setImageUri(null);
+    setImageError(false);
+    setImageLoading(true);
     try {
       if (projectId) {
         const url = await generateImageViaBE(prompt, projectId);
-        if (url) { setImageUri(url); return; }
+        if (url) { setImageUri(url); setLoading(false); return; }
       }
       const url = await generateImage(prompt, mode, currentMode.w, currentMode.h);
       setImageUri(url);
     } catch {
-      // Try building URL without verification as fallback
       const url = buildImageUrl(prompt, mode, currentMode.w, currentMode.h);
       setImageUri(url);
     } finally {
@@ -182,11 +185,32 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
       {/* Single image preview */}
       {imageUri && !batchResults && (
         <View style={styles.previewSection}>
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.previewImage}
-            resizeMode="contain"
-          />
+          <View>
+            <Image
+              source={{ uri: imageUri }}
+              style={[
+                styles.previewImage,
+                mode === 'logo' && { aspectRatio: 1 },
+                mode === 'social-cover' && { aspectRatio: 1 },
+              ]}
+              resizeMode="contain"
+              onLoadStart={() => setImageLoading(true)}
+              onLoad={() => { setImageLoading(false); setImageError(false); }}
+              onError={() => { setImageLoading(false); setImageError(true); }}
+            />
+            {imageLoading && (
+              <View style={styles.imageOverlay}>
+                <ActivityIndicator color={COLORS.neonMagenta} size="large" />
+                <Text style={styles.imageLoadingText}>Generando immagine...</Text>
+              </View>
+            )}
+            {imageError && (
+              <View style={styles.imageOverlay}>
+                <Text style={styles.imageErrorIcon}>⚠️</Text>
+                <Text style={styles.imageErrorText}>Immagine non disponibile. Riprova.</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.previewActions}>
             <Pressable
               onPress={handleGenerate}
@@ -294,7 +318,18 @@ const styles = StyleSheet.create({
   allFormatsBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: '#FF00E5' },
   progressText: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
   previewSection: { gap: SPACING.md },
-  previewImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: RADIUS.md, backgroundColor: COLORS.bgElevated },
+  previewImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: RADIUS.md, backgroundColor: COLORS.bgElevated, minHeight: 200 },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.bgElevated + 'DD',
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  imageLoadingText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary },
+  imageErrorIcon: { fontSize: 32 },
+  imageErrorText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.neonPink },
   previewActions: { flexDirection: 'row', gap: SPACING.sm },
   regenBtn: {
     paddingHorizontal: SPACING.lg,

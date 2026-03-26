@@ -74,17 +74,76 @@ export interface Job {
   error?: string;
 }
 
+export type AiProvider = 'pollinations' | 'groq' | 'gemini' | 'openrouter';
+
+export interface ProviderConfig {
+  id: AiProvider;
+  name: string;
+  description: string;
+  requiresKey: boolean;
+  signupUrl: string;
+  models: string[];
+  defaultModel: string;
+}
+
+export const AI_PROVIDERS: ProviderConfig[] = [
+  {
+    id: 'pollinations',
+    name: 'Pollinations AI',
+    description: 'Gratuito, nessuna chiave richiesta',
+    requiresKey: false,
+    signupUrl: '',
+    models: ['openai', 'mistral', 'llama'],
+    defaultModel: 'openai',
+  },
+  {
+    id: 'groq',
+    name: 'Groq',
+    description: 'Gratuito, velocissimo, Llama 3.3 70B',
+    requiresKey: true,
+    signupUrl: 'https://console.groq.com/keys',
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it', 'mixtral-8x7b-32768'],
+    defaultModel: 'llama-3.3-70b-versatile',
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    description: 'Gratuito con chiave AI Studio, ottimo per OCR',
+    requiresKey: true,
+    signupUrl: 'https://aistudio.google.com/apikey',
+    models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'],
+    defaultModel: 'gemini-2.0-flash',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Gratuito, accesso a modelli multipli',
+    requiresKey: true,
+    signupUrl: 'https://openrouter.ai/keys',
+    models: ['meta-llama/llama-3.1-8b-instruct:free', 'google/gemma-2-9b-it:free', 'mistralai/mistral-7b-instruct:free'],
+    defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
+  },
+];
+
 export interface AppSettings {
-  geminiModel: string;
+  aiProvider: AiProvider;
+  aiModel: string;
   googleApiKey: string;
+  groqApiKey: string;
+  openrouterApiKey: string;
+  geminiModel: string;
   notifications: boolean;
   autoProcess: boolean;
   highQuality: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  geminiModel: 'gemini-1.5-flash',
+  aiProvider: 'pollinations',
+  aiModel: 'openai',
   googleApiKey: '',
+  groqApiKey: '',
+  openrouterApiKey: '',
+  geminiModel: 'gemini-2.0-flash',
   notifications: true,
   autoProcess: false,
   highQuality: true,

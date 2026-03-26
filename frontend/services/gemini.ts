@@ -40,21 +40,32 @@ async function geminiRequest(
 }
 
 export async function summarizeText(
-  _apiKey: string,
-  _model: string,
-  text: string,
+  provider?: string,
+  apiKey?: string,
+  model?: string,
+  text?: string,
 ): Promise<string> {
-  const res = await post<{ result: string }>('/tools/summarize', { text });
+  const res = await post<{ result: string }>('/tools/summarize', {
+    text,
+    provider: provider || undefined,
+    api_key: apiKey || undefined,
+    model: model || undefined,
+  });
   return res.result;
 }
 
 export async function ocrImage(
-  _apiKey: string,
-  _model: string,
-  imageBase64: string,
-  _mimeType = 'image/jpeg',
+  provider?: string,
+  apiKey?: string,
+  model?: string,
+  imageBase64?: string,
 ): Promise<string> {
-  const res = await post<{ result: string }>('/tools/ocr', { image_base64: imageBase64 });
+  const res = await post<{ result: string }>('/tools/ocr', {
+    image_base64: imageBase64,
+    provider: provider || undefined,
+    api_key: apiKey || undefined,
+    model: model || undefined,
+  });
   return res.result;
 }
 

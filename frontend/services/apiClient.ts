@@ -86,7 +86,12 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const message = data?.detail ?? data?.message ?? res.statusText;
+    const raw = data?.detail ?? data?.message ?? res.statusText;
+    const message = Array.isArray(raw)
+      ? raw.map((e: any) => e?.msg ?? String(e)).join(', ')
+      : typeof raw === 'string'
+        ? raw
+        : String(raw);
     throw new ApiError(res.status, message);
   }
 

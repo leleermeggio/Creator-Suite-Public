@@ -105,23 +105,33 @@ export default function ToolScreen() {
     }
   };
 
+  const getProviderApiKey = () => {
+    const p = settings.aiProvider;
+    if (p === 'gemini') return settings.googleApiKey;
+    if (p === 'groq') return settings.groqApiKey;
+    if (p === 'openrouter') return settings.openrouterApiKey;
+    return '';
+  };
+
   const handleProcess = async () => {
     setIsProcessing(true);
     setResult(null);
     setError(null);
     try {
       let output = '';
+      const provider = settings.aiProvider;
+      const apiKey = getProviderApiKey();
+      const model = settings.aiModel;
+
       if (id === 'translate') {
         if (!inputText.trim()) throw new Error('Inserisci il testo da tradurre.');
-        output = await translateText(inputText, targetLang, settings.googleApiKey, settings.geminiModel);
+        output = await translateText(inputText, targetLang, provider, apiKey, model);
       } else if (id === 'summarize') {
-        if (!settings.googleApiKey) throw new Error('Inserisci la Google API Key nelle Impostazioni.');
         if (!inputText.trim()) throw new Error('Inserisci il testo da riassumere.');
-        output = await summarizeText(settings.googleApiKey, settings.geminiModel, inputText);
+        output = await summarizeText(provider, apiKey, model, inputText);
       } else if (id === 'ocr') {
-        if (!settings.googleApiKey) throw new Error('Inserisci la Google API Key nelle Impostazioni.');
         if (!imageBase64) throw new Error("Seleziona un'immagine.");
-        output = await ocrImage(settings.googleApiKey, settings.geminiModel, imageBase64);
+        output = await ocrImage(provider, apiKey, model, imageBase64);
       }
       setResult(output);
     } catch (e: any) {

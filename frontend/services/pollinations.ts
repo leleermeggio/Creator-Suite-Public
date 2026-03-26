@@ -34,12 +34,9 @@ export async function generateImage(
   width: number,
   height: number,
 ): Promise<string> {
-  const url = buildImageUrl(prompt, mode, width, height);
-  // Pollinations returns the image directly — we just need the URL
-  // Verify it's reachable
-  const res = await fetch(url, { method: 'HEAD' });
-  if (!res.ok) throw new Error(`Image generation failed (${res.status})`);
-  return url;
+  // Pollinations generates the image on GET request (not HEAD).
+  // Return the URL directly — the Image component will trigger generation on load.
+  return buildImageUrl(prompt, mode, width, height);
 }
 
 export interface ThumbnailResponse {

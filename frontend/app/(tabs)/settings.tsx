@@ -10,6 +10,7 @@ import {
   Switch,
   TextInput,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CosmicBackground } from '@/components/CosmicBackground';
@@ -17,6 +18,8 @@ import { GlowCard } from '@/components/GlowCard';
 import { GradientText } from '@/components/GradientText';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuthContext } from '@/context/AuthContext';
+import { AI_PROVIDERS } from '@/types';
+import type { AiProvider } from '@/types';
 import {
   COLORS,
   SPACING,
@@ -24,13 +27,6 @@ import {
   FONTS,
   RADIUS,
 } from '@/constants/theme';
-
-const GEMINI_MODELS = [
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro',
-];
 
 interface SettingRowProps {
   icon: string;
@@ -98,6 +94,8 @@ export default function SettingsScreen() {
   const horizontalPad = isDesktop ? 48 : 20;
   const contentMaxWidth = isDesktop ? 640 : undefined;
 
+  const selectedProvider = AI_PROVIDERS.find(p => p.id === settings.aiProvider) ?? AI_PROVIDERS[0];
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -106,9 +104,37 @@ export default function SettingsScreen() {
     }).start();
   }, []);
 
+  // Sync API key input with selected provider's stored key
   useEffect(() => {
-    setApiKeyInput(settings.googleApiKey ?? '');
-  }, [settings.googleApiKey]);
+    if (settings.aiProvider === 'gemini') setApiKeyInput(settings.googleApiKey ?? '');
+    else if (settings.aiProvider === 'groq') setApiKeyInput(settings.groqApiKey ?? '');
+    else if (settings.aiProvider === 'openrouter') setApiKeyInput(settings.openrouterApiKey ?? '');
+    else setApiKeyInput('');
+  }, [settings.aiProvider, settings.googleApiKey, settings.groqApiKey, settings.openrouterApiKey]);
+
+  const handleSaveApiKey = () => {
+    const key = apiKeyInput.trim();
+    if (settings.aiProvider === 'gemini') update({ googleApiKey: key });
+    else if (settings.aiProvider === 'groq') update({ groqApiKey: key });
+    else if (settings.aiProvider === 'openrouter') update({ openrouterApiKey: key });
+  };
+
+  const handleSelectProvider = (id: AiProvider) => {
+    const provider = AI_PROVIDERS.find(p => p.id === id);
+    if (provider) {
+      update({ aiProvider: id, aiModel: provider.defaultModel });
+    }
+  };
+
+  const openSignup = () => {
+    if (selectedProvider.signupUrl) {
+      if (Platform.OS === 'web') {
+        window.open(selectedProvider.signupUrl, '_blank');
+      } else {
+        Linking.openURL(selectedProvider.signupUrl);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -135,57 +161,110 @@ export default function SettingsScreen() {
           </Text>
         </Animated.View>
 
-        {/* Account section */}
+        {/* AI Provider section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <Text style={styles.sectionLabel}>PROVIDER AI</Text>
           <GlowCard gradient={COLORS.gradCyan} glowIntensity={0.1} borderWidth={1}>
             <View style={styles.settingsGroup}>
-              {/* Google API Key */}
+              {/* Provider selector */}
               <View style={styles.settingRow}>
-                <Text style={styles.settingIcon}>🔑</Text>
+                <Text style={styles.settingIcon}>🤖</Text>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingLabel}>Google API Key</Text>
-                  <Text style={styles.settingSublabel}>Richiesta per Riassumi e OCR</Text>
-                  <TextInput
-                    style={styles.apiKeyInput}
-                    value={apiKeyInput}
-                    onChangeText={setApiKeyInput}
-                    onBlur={() => update({ googleApiKey: apiKeyInput.trim() })}
-                    placeholder="AIza..."
-                    placeholderTextColor={COLORS.textMuted}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  {apiKeyInput.trim().length > 0 && (
-                    <Text style={styles.apiKeyStatus}>✅ Key salvata</Text>
-                  )}
+                  <Text style={styles.settingLabel}>Provider</Text>
+                  <Text style={styles.settingSublabel}>
+                    {selectedProvider.description}
+                  </Text>
+                  <View style={styles.providerCards}>
+                    {AI_PROVIDERS.map(p => {
+                      const isActive = settings.aiProvider === p.id;
+                      return (
+                        <Pressable
+                          key={p.id}
+                          onPress={() => handleSelectProvider(p.id)}
+                          style={[
+                            styles.providerCard,
+                            isActive && styles.providerCardActive,
+                            Platform.OS === 'web' && { cursor: 'pointer' as any },
+                          ]}
+                        >
+                          <Text style={[
+                            styles.providerName,
+                            isActive && styles.providerNameActive,
+                          ]}>
+                            {p.name}
+                          </Text>
+                          <Text style={styles.providerDesc}>
+                            {p.requiresKey ? 'Chiave richiesta' : 'Nessuna chiave'}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
 
+              {/* API Key input (only if provider requires key) */}
+              {selectedProvider.requiresKey && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.settingRow}>
+                    <Text style={styles.settingIcon}>🔑</Text>
+                    <View style={styles.settingTextCol}>
+                      <Text style={styles.settingLabel}>
+                        {selectedProvider.name} API Key
+                      </Text>
+                      <Pressable onPress={openSignup} style={Platform.OS === 'web' ? { cursor: 'pointer' as any } : undefined}>
+                        <Text style={styles.signupLink}>
+                          Ottieni chiave gratuita →
+                        </Text>
+                      </Pressable>
+                      <TextInput
+                        style={styles.apiKeyInput}
+                        value={apiKeyInput}
+                        onChangeText={setApiKeyInput}
+                        onBlur={handleSaveApiKey}
+                        placeholder={
+                          settings.aiProvider === 'gemini' ? 'AIza...'
+                          : settings.aiProvider === 'groq' ? 'gsk_...'
+                          : 'sk-or-...'
+                        }
+                        placeholderTextColor={COLORS.textMuted}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      {apiKeyInput.trim().length > 0 && (
+                        <Text style={styles.apiKeyStatus}>✅ Key salvata</Text>
+                      )}
+                    </View>
+                  </View>
+                </>
+              )}
+
               <View style={styles.divider} />
 
-              {/* Gemini Model Selector */}
+              {/* Model selector */}
               <View style={styles.settingRow}>
                 <Text style={styles.settingIcon}>🧠</Text>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingLabel}>Modello Gemini</Text>
-                  <Text style={styles.settingSublabel}>{settings.geminiModel}</Text>
+                  <Text style={styles.settingLabel}>Modello</Text>
+                  <Text style={styles.settingSublabel}>{settings.aiModel}</Text>
                   <View style={styles.modelChips}>
-                    {GEMINI_MODELS.map(m => (
+                    {selectedProvider.models.map(m => (
                       <Pressable
                         key={m}
-                        onPress={() => update({ geminiModel: m })}
+                        onPress={() => update({ aiModel: m })}
                         style={[
                           styles.modelChip,
-                          settings.geminiModel === m && styles.modelChipActive,
+                          settings.aiModel === m && styles.modelChipActive,
+                          Platform.OS === 'web' && { cursor: 'pointer' as any },
                         ]}
                       >
                         <Text style={[
                           styles.modelChipText,
-                          settings.geminiModel === m && styles.modelChipTextActive,
+                          settings.aiModel === m && styles.modelChipTextActive,
                         ]}>
-                          {m.replace('gemini-', '')}
+                          {m.replace('gemini-', '').replace('meta-llama/', '').replace('mistralai/', '').replace('google/', '').replace(':free', '')}
                         </Text>
                       </Pressable>
                     ))}
@@ -344,6 +423,45 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.05)',
     marginLeft: 44,
+  },
+  providerCards: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  providerCard: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    minWidth: 120,
+  },
+  providerCardActive: {
+    borderColor: COLORS.neonCyan,
+    backgroundColor: COLORS.neonCyan + '15',
+  },
+  providerName: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  providerNameActive: {
+    color: COLORS.neonCyan,
+  },
+  providerDesc: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 10,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  signupLink: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    color: COLORS.neonCyan,
+    marginTop: 4,
   },
   apiKeyInput: {
     marginTop: SPACING.sm,
