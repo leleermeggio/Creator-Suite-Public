@@ -62,6 +62,10 @@ export default function ToolScreen() {
   const [jumpcutMode, setJumpcutMode] = useState<'file' | 'url'>('file');
   const [jumpcutUrl, setJumpcutUrl] = useState('');
   const [processingPhase, setProcessingPhase] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle');
+  const [convertFormat, setConvertFormat] = useState('mp3');
+  const [downloadUrl, setDownloadUrl] = useState('');
+  const [downloadType, setDownloadType] = useState<'video' | 'audio'>('video');
+  const [whisperModel, setWhisperModel] = useState('small');
 
   // Cleanup blob URLs to prevent memory leaks
   useEffect(() => {
@@ -171,6 +175,113 @@ export default function ToolScreen() {
       } else if (id === 'ocr') {
         if (!imageBase64) throw new Error("Seleziona un'immagine.");
         output = await ocrImage(provider, apiKey, model, imageBase64);
+      } else if (id === 'transcribe') {
+        if (!selectedFile) throw new Error('Seleziona un file audio o video.');
+        const { API_BASE } = await import('@/services/apiClient');
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const token = await AsyncStorage.default.getItem('auth_access_token');
+        
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        
+        setProcessingPhase('uploading');
+        const res = await fetch(`${API_BASE}/tools/transcribe?model=${whisperModel}&language=${targetLang || ''}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        
+        setProcessingPhase('processing');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Errore durante la trascrizione');
+        }
+        
+        const data = await res.json();
+        output = data.text || '';
+      } else if (id === 'tts') {
+        if (!inputText.trim()) throw new Error('Inserisci il testo da convertire in audio.');
+        const { API_BASE } = await import('@/services/apiClient');
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const token = await AsyncStorage.default.getItem('auth_access_token');
+        
+        const res = await fetch(`${API_BASE}/audio/tts`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: projectId || 'temp',
+            text: inputText,
+            language: targetLang || 'it',
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Errore durante la generazione audio');
+        }
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const filename = `tts-${Date.now()}.mp3`;
+        setJumpcutResult({ url, filename, stats: {} });
+        return;
+      } else if (id === 'convert') {
+        if (!selectedFile) throw new Error('Seleziona un file da convertire.');
+        const { API_BASE } = await import('@/services/apiClient');
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const token = await AsyncStorage.default.getItem('auth_access_token');
+        
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        
+        setProcessingPhase('uploading');
+        const res = await fetch(`${API_BASE}/tools/convert?target_format=${convertFormat}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        
+        setProcessingPhase('processing');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Errore durante la conversione');
+        }
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const filename = res.headers.get('content-disposition')?.match(/filename="?(.+?)"?$/)?.[1] || `converted.${convertFormat}`;
+        setJumpcutResult({ url, filename, stats: { format: convertFormat } });
+        return;
+      } else if (id === 'download') {
+        if (!downloadUrl.trim()) throw new Error('Inserisci un URL valido.');
+        const { API_BASE } = await import('@/services/apiClient');
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const token = await AsyncStorage.default.getItem('auth_access_token');
+        
+        setProcessingPhase('processing');
+        const res = await fetch(`${API_BASE}/tools/download?url=${encodeURIComponent(downloadUrl)}&format_type=${downloadType}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Errore durante il download');
+        }
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const filename = res.headers.get('content-disposition')?.match(/filename="?(.+?)"?$/)?.[1] || 'download.mp4';
+        const stats = {
+          title: res.headers.get('X-Title'),
+          duration: res.headers.get('X-Duration'),
+          uploader: res.headers.get('X-Uploader'),
+        };
+        setJumpcutResult({ url, filename, stats });
+        return;
       } else if (id === 'jumpcut') {
         if (jumpcutMode === 'file' && !selectedFile) {
           throw new Error('Seleziona un file video o audio.');
@@ -369,6 +480,64 @@ export default function ToolScreen() {
           </Animated.View>
         )}
 
+        {id === 'transcribe' && (
+          <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
+            <Text style={styles.fieldLabel}>MODELLO WHISPER</Text>
+            <View style={styles.modeToggle}>
+              {['tiny', 'small', 'medium'].map((mdl) => (
+                <Pressable
+                  key={mdl}
+                  onPress={() => setWhisperModel(mdl)}
+                  style={[styles.modeBtn, whisperModel === mdl && styles.modeBtnActive]}
+                >
+                  <Text style={[styles.modeBtnText, whisperModel === mdl && styles.modeBtnTextActive]}>
+                    {mdl.charAt(0).toUpperCase() + mdl.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
+        )}
+
+        {id === 'download' && (
+          <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
+            <Text style={styles.fieldLabel}>TIPO DI DOWNLOAD</Text>
+            <View style={styles.modeToggle}>
+              <Pressable
+                onPress={() => setDownloadType('video')}
+                style={[styles.modeBtn, downloadType === 'video' && styles.modeBtnActive]}
+              >
+                <Text style={[styles.modeBtnText, downloadType === 'video' && styles.modeBtnTextActive]}>🎬 Video</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setDownloadType('audio')}
+                style={[styles.modeBtn, downloadType === 'audio' && styles.modeBtnActive]}
+              >
+                <Text style={[styles.modeBtnText, downloadType === 'audio' && styles.modeBtnTextActive]}>🎵 Audio</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        )}
+
+        {id === 'convert' && (
+          <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
+            <Text style={styles.fieldLabel}>FORMATO DI DESTINAZIONE</Text>
+            <View style={styles.modeToggle}>
+              {['mp3', 'wav', 'mp4', 'webm'].map((fmt) => (
+                <Pressable
+                  key={fmt}
+                  onPress={() => setConvertFormat(fmt)}
+                  style={[styles.modeBtn, convertFormat === fmt && styles.modeBtnActive]}
+                >
+                  <Text style={[styles.modeBtnText, convertFormat === fmt && styles.modeBtnTextActive]}>
+                    {fmt.toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
+        )}
+
         {id === 'jumpcut' && (
           <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
             <Text style={styles.fieldLabel}>MODALITÀ</Text>
@@ -403,6 +572,17 @@ export default function ToolScreen() {
                   </View>
                 )}
               </Pressable>
+            ) : hints.inputType === 'url' && id === 'download' ? (
+              <TextInput
+                style={styles.textInput}
+                placeholder={hints.placeholder}
+                placeholderTextColor={COLORS.textMuted}
+                value={downloadUrl}
+                onChangeText={setDownloadUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline={false}
+              />
             ) : hints.inputType === 'file' && id === 'jumpcut' && jumpcutMode === 'url' ? (
               <View>
                 <TextInput

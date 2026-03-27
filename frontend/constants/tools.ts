@@ -18,7 +18,7 @@ export const TOOLS: Tool[] = [
     icon: '🎙️',
     gradient: COLORS.gradCyan,
     accentColor: COLORS.neonCyan,
-    available: false,
+    available: true,
   },
   {
     id: 'translate',
@@ -36,7 +36,7 @@ export const TOOLS: Tool[] = [
     icon: '⬇️',
     gradient: COLORS.gradOrange,
     accentColor: COLORS.neonOrange,
-    available: false,
+    available: true,
   },
   {
     id: 'summarize',
@@ -63,7 +63,7 @@ export const TOOLS: Tool[] = [
     icon: '🔊',
     gradient: COLORS.gradSunset,
     accentColor: COLORS.neonYellow,
-    available: false,
+    available: true,
   },
   {
     id: 'convert',
@@ -72,7 +72,7 @@ export const TOOLS: Tool[] = [
     icon: '🔄',
     gradient: ['#3B82F6', '#00F5FF'],
     accentColor: COLORS.neonBlue,
-    available: false,
+    available: true,
   },
   {
     id: 'jumpcut',

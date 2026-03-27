@@ -734,3 +734,200 @@ async def generate_image(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=str(exc),
             ) from exc
+
+
+# ── Convert endpoint ─────────────────────────────────────────────────────────
+
+
+@router.post("/convert")
+async def convert_media(
+    file: UploadFile = File(...),
+    target_format: str = Query(..., description="Target format (mp3, wav, ogg, mp4, mkv, webm, avi)"),
+    _user: User = Depends(get_current_user),
+) -> FileResponse:
+    """Convert audio/video file to target format using FFmpeg."""
+    from backend.services.convert_service import convert_media as convert_svc
+
+    supported = ["mp3", "wav", "ogg", "aac", "mp4", "mkv", "webm", "avi", "mov"]
+    target_format = target_format.lower().strip(".")
+    
+    if target_format not in supported:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Format not supported. Use one of: {', '.join(supported)}",
+        )
+
+    tmp_dir = tempfile.mkdtemp(prefix="convert_")
+    try:
+        # Save uploaded file
+        ext = os.path.splitext(file.filename or "input")[1] or ".mp4"
+        input_path = os.path.join(tmp_dir, f"input{ext}")
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        # Convert in thread
+        output_path = await asyncio.to_thread(
+            convert_svc,
+            input_path,
+            target_format,
+        )
+
+        if not os.path.exists(output_path):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Conversion failed - output file not found.",
+            )
+
+        stem = os.path.splitext(file.filename or "file")[0]
+        download_name = f"{stem}.{target_format}"
+
+        def cleanup():
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+        return FileResponse(
+            path=output_path,
+            filename=download_name,
+            media_type="application/octet-stream",
+            background=BackgroundTask(cleanup),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Convert error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Conversion error: {exc}",
+        ) from exc
+
+
+# ── Download endpoint ────────────────────────────────────────────────────────
+
+
+@router.post("/download")
+async def download_media(
+    url: str = Query(..., description="URL to download from (YouTube, Instagram, etc.)"),
+    format_type: str = Query("video", description="Type: video or audio"),
+    _user: User = Depends(get_current_user),
+) -> FileResponse:
+    """Download media from URL using yt-dlp."""
+    from backend.services.downloader_service import download_from_url
+
+    if format_type not in ["video", "audio"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="format_type must be 'video' or 'audio'",
+        )
+
+    tmp_dir = tempfile.mkdtemp(prefix="download_")
+    try:
+        # Download in thread
+        result = await asyncio.to_thread(
+            download_from_url,
+            url,
+            output_dir=tmp_dir,
+        )
+
+        output_path = result.get("filepath")
+        if not output_path or not os.path.exists(output_path):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Download failed - output file not found.",
+            )
+
+        filename = os.path.basename(output_path)
+
+        def cleanup():
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+        return FileResponse(
+            path=output_path,
+            filename=filename,
+            media_type="application/octet-stream",
+            headers={
+                "X-Title": result.get("title", ""),
+                "X-Duration": str(result.get("duration", 0)),
+                "X-Uploader": result.get("uploader", ""),
+            },
+            background=BackgroundTask(cleanup),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Download error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Download error: {exc}",
+        ) from exc
+
+
+# ── Transcribe endpoint ──────────────────────────────────────────────────────
+
+
+class TranscribeResult(BaseModel):
+    text: str
+    segments: list[dict]
+    language: str | None = None
+
+
+@router.post("/transcribe", response_model=TranscribeResult)
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str | None = Query(None, description="Language code (e.g. 'it', 'en')"),
+    model: str = Query("small", description="Whisper model: tiny, small, medium, large"),
+    _user: User = Depends(get_current_user),
+) -> TranscribeResult:
+    """Transcribe audio/video file using Whisper AI."""
+    from backend.services.transcriber_service import transcribe_audio as transcribe_svc
+
+    supported_models = ["tiny", "small", "medium", "large", "large-v2", "large-v3"]
+    if model not in supported_models:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Model not supported. Use one of: {', '.join(supported_models)}",
+        )
+
+    tmp_dir = tempfile.mkdtemp(prefix="transcribe_")
+    try:
+        # Save uploaded file
+        ext = os.path.splitext(file.filename or "audio.mp3")[1] or ".mp3"
+        input_path = os.path.join(tmp_dir, f"input{ext}")
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        # Transcribe in thread (can be slow)
+        result = await asyncio.to_thread(
+            transcribe_svc,
+            input_path,
+            model_name=model,
+            language=language,
+        )
+
+        return TranscribeResult(
+            text=result.get("text", ""),
+            segments=result.get("segments", []),
+            language=result.get("language"),
+        )
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Whisper not installed. Run: pip install openai-whisper",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Transcribe error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transcription error: {exc}",
+        ) from exc
+    finally:
+        try:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
+            pass
