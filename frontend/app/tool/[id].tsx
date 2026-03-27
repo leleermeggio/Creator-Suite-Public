@@ -57,6 +57,20 @@ export default function ToolScreen() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [jumpcutResult, setJumpcutResult] = useState<{ url: string; filename: string; stats: any } | null>(null);
+  const [jumpcutMode, setJumpcutMode] = useState<'file' | 'url'>('file');
+  const [jumpcutUrl, setJumpcutUrl] = useState('');
+  const [processingPhase, setProcessingPhase] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle');
+
+  // Cleanup blob URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (jumpcutResult?.url && Platform.OS === 'web') {
+        URL.revokeObjectURL(jumpcutResult.url);
+      }
+    };
+  }, [jumpcutResult]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -116,6 +130,19 @@ export default function ToolScreen() {
     }
   };
 
+  const handlePickFile = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*,audio/*';
+      input.onchange = (e: any) => {
+        const file = e.target.files?.[0];
+        if (file) setSelectedFile(file);
+      };
+      input.click();
+    }
+  };
+
   const getProviderApiKey = () => {
     const p = settings.aiProvider;
     if (p === 'gemini') return settings.googleApiKey;
@@ -127,6 +154,7 @@ export default function ToolScreen() {
   const handleProcess = async () => {
     setIsProcessing(true);
     setResult(null);
+    setJumpcutResult(null);
     setError(null);
     try {
       let output = '';
@@ -143,6 +171,50 @@ export default function ToolScreen() {
       } else if (id === 'ocr') {
         if (!imageBase64) throw new Error("Seleziona un'immagine.");
         output = await ocrImage(provider, apiKey, model, imageBase64);
+      } else if (id === 'jumpcut') {
+        if (jumpcutMode === 'file' && !selectedFile) {
+          throw new Error('Seleziona un file video o audio.');
+        }
+        if (jumpcutMode === 'url' && !jumpcutUrl.trim()) {
+          throw new Error('Inserisci un URL valido.');
+        }
+        const { API_BASE } = await import('@/services/apiClient');
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const token = await AsyncStorage.default.getItem('auth_access_token');
+        
+        let fetchUrl = `${API_BASE}/tools/jumpcut`;
+        const formData = new FormData();
+        
+        if (jumpcutMode === 'url') {
+          fetchUrl += `?url=${encodeURIComponent(jumpcutUrl)}`;
+          setProcessingPhase('processing');
+        } else {
+          formData.append('file', selectedFile!);
+          setProcessingPhase('uploading');
+        }
+        
+        const res = await fetch(fetchUrl, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: jumpcutMode === 'file' ? formData : undefined,
+        });
+        
+        setProcessingPhase('processing');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Errore durante il jumpcut');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const filename = res.headers.get('content-disposition')?.match(/filename="?(.+?)"?$/)?.[1] || 'jumpcut.mp4';
+        const stats = {
+          original: res.headers.get('X-Original-Duration'),
+          final: res.headers.get('X-Final-Duration'),
+          removed: res.headers.get('X-Removed-Pct'),
+          segments: res.headers.get('X-Segments-Count'),
+        };
+        setJumpcutResult({ url, filename, stats });
+        return;
       }
       setResult(output);
     } catch (e: any) {
@@ -297,6 +369,26 @@ export default function ToolScreen() {
           </Animated.View>
         )}
 
+        {id === 'jumpcut' && (
+          <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
+            <Text style={styles.fieldLabel}>MODALITÀ</Text>
+            <View style={styles.modeToggle}>
+              <Pressable
+                onPress={() => setJumpcutMode('file')}
+                style={[styles.modeBtn, jumpcutMode === 'file' && styles.modeBtnActive]}
+              >
+                <Text style={[styles.modeBtnText, jumpcutMode === 'file' && styles.modeBtnTextActive]}>📁 File</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setJumpcutMode('url')}
+                style={[styles.modeBtn, jumpcutMode === 'url' && styles.modeBtnActive]}
+              >
+                <Text style={[styles.modeBtnText, jumpcutMode === 'url' && styles.modeBtnTextActive]}>🔗 URL</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        )}
+
         <Animated.View style={{ opacity: fadeAnim }}>
           <GlowCard gradient={tool.gradient} glowIntensity={0.2}>
             {hints.inputType === 'image' ? (
@@ -306,6 +398,38 @@ export default function ToolScreen() {
                 ) : (
                   <View style={styles.fileDropContent}>
                     <Text style={styles.fileDropIcon}>🖼️</Text>
+                    <Text style={styles.fileDropText}>{hints.placeholder}</Text>
+                    <Text style={styles.fileDropHint}>Tocca per selezionare</Text>
+                  </View>
+                )}
+              </Pressable>
+            ) : hints.inputType === 'file' && id === 'jumpcut' && jumpcutMode === 'url' ? (
+              <View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Incolla URL diretto al file video..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={jumpcutUrl}
+                  onChangeText={setJumpcutUrl}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  multiline={false}
+                />
+                <Text style={styles.urlHint}>
+                  💡 Usa link diretti al file (es. Dropbox con dl=1, Google Drive export=download). SwissTransfer/WeTransfer richiedono download manuale → usa modalità File.
+                </Text>
+              </View>
+            ) : hints.inputType === 'file' ? (
+              <Pressable onPress={handlePickFile} style={styles.fileDropZone}>
+                {selectedFile ? (
+                  <View style={styles.fileDropContent}>
+                    <Text style={styles.fileDropIcon}>📁</Text>
+                    <Text style={styles.fileDropText}>{selectedFile.name}</Text>
+                    <Text style={styles.fileDropHint}>{(selectedFile.size / 1024 / 1024).toFixed(1)} MB</Text>
+                  </View>
+                ) : (
+                  <View style={styles.fileDropContent}>
+                    <Text style={styles.fileDropIcon}>📤</Text>
                     <Text style={styles.fileDropText}>{hints.placeholder}</Text>
                     <Text style={styles.fileDropHint}>Tocca per selezionare</Text>
                   </View>
@@ -338,7 +462,17 @@ export default function ToolScreen() {
               }
             </LinearGradient>
           </Pressable>
-          {isProcessing && (
+          {isProcessing && id === 'jumpcut' && (
+            <View style={styles.progressContainer}>
+              {processingPhase === 'uploading' && (
+                <Text style={styles.processingHint}>📤 Caricamento file in corso...</Text>
+              )}
+              {processingPhase === 'processing' && (
+                <Text style={styles.processingHint}>✂️ Rimozione silenzi in corso...</Text>
+              )}
+            </View>
+          )}
+          {isProcessing && id !== 'jumpcut' && (
             <Text style={styles.processingHint}>✨ Elaborazione in corso...</Text>
           )}
         </Animated.View>
@@ -372,6 +506,35 @@ export default function ToolScreen() {
             </View>
           </View>
         )}
+
+        {jumpcutResult && (
+          <View style={styles.resultSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>RISULTATO</Text>
+              <View style={styles.sectionLine} />
+            </View>
+            <GlowCard gradient={tool.gradient} glowIntensity={0.12}>
+              <Text style={styles.resultText}>✅ Video processato!</Text>
+              {jumpcutResult.stats.original && (
+                <Text style={[styles.resultText, { fontSize: 13, marginTop: 8 }]}>
+                  Durata originale: {jumpcutResult.stats.original}s{' '}→ {jumpcutResult.stats.final}s{' '}({jumpcutResult.stats.removed}% rimosso)
+                </Text>
+              )}
+            </GlowCard>
+            <Pressable onPress={() => {
+              if (Platform.OS === 'web') {
+                const a = document.createElement('a');
+                a.href = jumpcutResult.url;
+                a.download = jumpcutResult.filename;
+                a.click();
+              }
+            }} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginTop: 12 }]}>
+              <LinearGradient colors={tool.gradient as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.processBtn}>
+                <Text style={styles.processBtnText}>⬇️ Scarica video</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -392,6 +555,11 @@ const styles = StyleSheet.create({
   featurePill: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.full, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)' },
   featureText: { fontFamily: FONTS.bodyMedium, fontSize: 12, letterSpacing: 0.3 },
   fieldLabel: { fontFamily: FONTS.bodySemiBold, fontSize: 11, color: COLORS.textMuted, letterSpacing: 1.5, marginBottom: SPACING.sm },
+  modeToggle: { flexDirection: 'row', gap: SPACING.sm },
+  modeBtn: { flex: 1, paddingVertical: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: COLORS.bgCard, alignItems: 'center' },
+  modeBtnActive: { borderColor: COLORS.neonPink, backgroundColor: COLORS.neonPink + '15' },
+  modeBtnText: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary },
+  modeBtnTextActive: { color: COLORS.neonPink, fontFamily: FONTS.bodySemiBold },
   langSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: COLORS.bgCard },
   langSelectorText: { fontFamily: FONTS.bodyMedium, fontSize: 15, color: COLORS.textPrimary },
   langSelectorArrow: { fontSize: 12, color: COLORS.textMuted },
@@ -400,6 +568,7 @@ const styles = StyleSheet.create({
   langOptionSelected: { backgroundColor: COLORS.neonCyan + '15' },
   langOptionText: { fontFamily: FONTS.bodyRegular, fontSize: 14, color: COLORS.textPrimary },
   textInput: { fontFamily: FONTS.bodyRegular, fontSize: 15, color: COLORS.textPrimary, minHeight: 120, textAlignVertical: 'top', ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  urlHint: { fontFamily: FONTS.bodyRegular, fontSize: 12, color: COLORS.textMuted, marginTop: SPACING.sm, lineHeight: 18 },
   fileDropZone: { minHeight: 160 },
   fileDropContent: { alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.xxl, gap: SPACING.md },
   fileDropIcon: { fontSize: 42 },
@@ -408,6 +577,7 @@ const styles = StyleSheet.create({
   imagePreviewImg: { width: '100%', height: 200, borderRadius: RADIUS.md },
   buttonContainer: { marginTop: SPACING.xl },
   processBtn: { borderRadius: RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
+  progressContainer: { marginTop: SPACING.sm },
   processBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 16, color: COLORS.bg },
   processingHint: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.sm },
   errorBox: { marginTop: SPACING.lg, padding: SPACING.md, borderRadius: RADIUS.md, backgroundColor: COLORS.neonPink + '15', borderWidth: 1, borderColor: COLORS.neonPink + '44' },

@@ -110,7 +110,7 @@ export default function SettingsScreen() {
     else if (settings.aiProvider === 'groq') setApiKeyInput(settings.groqApiKey ?? '');
     else if (settings.aiProvider === 'openrouter') setApiKeyInput(settings.openrouterApiKey ?? '');
     else setApiKeyInput('');
-  }, [settings.aiProvider, settings.googleApiKey, settings.groqApiKey, settings.openrouterApiKey]);
+  }, [settings.aiProvider, settings.googleApiKey, settings.groqApiKey, settings.openrouterApiKey, settings.nanobananaApiKey]);
 
   const handleSaveApiKey = () => {
     const key = apiKeyInput.trim();
@@ -269,6 +269,52 @@ export default function SettingsScreen() {
                       </Pressable>
                     ))}
                   </View>
+                </View>
+              </View>
+            </View>
+          </GlowCard>
+        </Animated.View>
+
+        {/* Image Generation section */}
+        <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
+          <Text style={styles.sectionLabel}>GENERAZIONE IMMAGINI</Text>
+          <GlowCard gradient={COLORS.gradMagenta} glowIntensity={0.1} borderWidth={1}>
+            <View style={styles.settingsGroup}>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingIcon}>🍌</Text>
+                <View style={styles.settingTextCol}>
+                  <Text style={styles.settingLabel}>NanoBanana API Key</Text>
+                  <Text style={styles.settingSublabel}>
+                    Gemini-powered image generation
+                  </Text>
+                  <Pressable 
+                    onPress={() => {
+                      const url = 'https://nanobananaapi.ai/api-key';
+                      if (Platform.OS === 'web') {
+                        window.open(url, '_blank');
+                      } else {
+                        Linking.openURL(url);
+                      }
+                    }}
+                    style={Platform.OS === 'web' ? { cursor: 'pointer' as any } : undefined}
+                  >
+                    <Text style={styles.signupLink}>
+                      Ottieni crediti gratuiti →
+                    </Text>
+                  </Pressable>
+                  <TextInput
+                    style={styles.apiKeyInput}
+                    value={settings.nanobananaApiKey}
+                    onChangeText={(value) => update({ nanobananaApiKey: value })}
+                    placeholder="nb_..."
+                    placeholderTextColor={COLORS.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {settings.nanobananaApiKey.trim().length > 0 && (
+                    <Text style={styles.apiKeyStatus}>✅ Key salvata</Text>
+                  )}
                 </View>
               </View>
             </View>

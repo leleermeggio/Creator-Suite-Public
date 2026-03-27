@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import shutil
+import tempfile
 
 import httpx
 from deep_translator import GoogleTranslator
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 
 import base64
 
@@ -17,6 +22,126 @@ from backend.models.user import User
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["tools"])
+
+
+# ── Jumpcut endpoint ─────────────────────────────────────────────────────────
+
+
+@router.post("/jumpcut")
+async def jumpcut(
+    file: UploadFile | None = File(None),
+    url: str | None = Query(None, description="URL to download media from"),
+    silence_threshold: float = Query(-35.0, description="Silence threshold in dB"),
+    min_silence: float = Query(0.4, description="Min silence duration (seconds)"),
+    padding: float = Query(0.12, description="Padding around speech (seconds)"),
+    _user: User = Depends(get_current_user),
+) -> FileResponse:
+    """Upload a media file or provide URL, remove silences, return the processed file."""
+    from backend.services.jumpcut_service import check_ffmpeg, process_jumpcut
+
+    if not file and not url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fornisci un file o un URL.",
+        )
+
+    if not check_ffmpeg():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ffmpeg non è installato sul server.",
+        )
+
+    tmp_dir = tempfile.mkdtemp(prefix="jc_upload_")
+    try:
+        # Download from URL or save uploaded file
+        if url:
+            logger.info("Downloading from URL: %s", url)
+            # Add browser-like headers to bypass anti-bot protection
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "*/*",
+                "Accept-Language": "en-US,en;q=0.9,it;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Referer": url.rsplit('/', 1)[0] + "/",
+                "DNT": "1",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+            }
+            async with httpx.AsyncClient(timeout=300.0, follow_redirects=True) as client:
+                resp = await client.get(url, headers=headers)
+                resp.raise_for_status()
+                # Try to get filename from Content-Disposition or URL
+                cd = resp.headers.get("content-disposition", "")
+                filename = None
+                if "filename=" in cd:
+                    filename = cd.split("filename=")[-1].strip('"\'')
+                if not filename:
+                    filename = url.split("/")[-1].split("?")[0] or "download.mp4"
+                ext = os.path.splitext(filename)[1] or ".mp4"
+                input_path = os.path.join(tmp_dir, f"input{ext}")
+                with open(input_path, "wb") as f:
+                    f.write(resp.content)
+                stem = os.path.splitext(filename)[0]
+        else:
+            # Save uploaded file
+            ext = os.path.splitext(file.filename or "video.mp4")[1] or ".mp4"
+            input_path = os.path.join(tmp_dir, f"input{ext}")
+            with open(input_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+            stem = os.path.splitext(file.filename or "video")[0]
+
+        # Process in a thread to avoid blocking the event loop
+        result = await asyncio.to_thread(
+            process_jumpcut,
+            input_path,
+            tmp_dir,
+            noise_db=silence_threshold,
+            min_silence=min_silence,
+            padding=padding,
+        )
+
+        if result.error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=result.error,
+            )
+
+        if not result.output_path or not os.path.exists(result.output_path):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Jumpcut output file not found.",
+            )
+
+        # stem was already set correctly in URL or file mode above
+        download_name = f"{stem}_jumpcut{ext}"
+
+        # Cleanup tmp dir after response is sent
+        def cleanup():
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+        return FileResponse(
+            path=result.output_path,
+            filename=download_name,
+            media_type="application/octet-stream",
+            headers={
+                "X-Original-Duration": f"{result.original_duration:.2f}",
+                "X-Final-Duration": f"{result.final_duration:.2f}",
+                "X-Removed-Pct": f"{result.removed_pct:.1f}",
+                "X-Segments-Count": str(result.segments_count),
+            },
+            background=BackgroundTask(cleanup),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Jumpcut error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore durante il jumpcut: {exc}",
+        ) from exc
 
 
 # ── Request / Response schemas ────────────────────────────────────────────────
@@ -53,6 +178,8 @@ class GenerateImageRequest(BaseModel):
     width: int = Field(default=1024, ge=256, le=2048)
     height: int = Field(default=768, ge=256, le=2048)
     model: str | None = None
+    provider: str | None = None
+    api_key: str | None = None
 
 
 class GenerateImageResult(BaseModel):
@@ -67,6 +194,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 STABLE_HORDE_URL = "https://aihorde.net/api/v2"
+NANOBANANA_URL = "https://www.nananobanana.com/api/v1"
 
 
 # ── Unified OpenAI-compatible helper ─────────────────────────────────────────
@@ -418,6 +546,65 @@ async def ocr(
             ) from exc
 
 
+# ── NanoBanana image generation (requires API key) ──────────────────────────
+
+
+async def _nanobanana_generate(
+    client: httpx.AsyncClient,
+    prompt: str,
+    width: int,
+    height: int,
+    api_key: str,
+    model: str = "nano-banana",
+) -> str:
+    """Call NanoBanana API for image generation. Returns base64 image."""
+    # Determine aspect ratio based on dimensions
+    w, h = width, height
+    ratio = w / h
+    if 0.9 <= ratio <= 1.1:
+        aspect_ratio = "1:1"
+    elif ratio > 1.3:
+        aspect_ratio = "16:9"
+    elif ratio < 0.8:
+        aspect_ratio = "9:16"
+    else:
+        aspect_ratio = "default"
+
+    payload = {
+        "prompt": prompt,
+        "selectedModel": model,
+        "aspectRatio": aspect_ratio,
+        "mode": "sync",
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    resp = await client.post(
+        f"{NANOBANANA_URL}/generate",
+        json=payload,
+        headers=headers,
+        timeout=90.0,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+
+    # Get image URL from response
+    output_urls = data.get("data", {}).get("outputImageUrls", [])
+    if not output_urls:
+        raise ValueError("NanoBanana returned no image URLs")
+
+    image_url = output_urls[0]
+
+    # Download image and convert to base64
+    img_resp = await client.get(image_url, timeout=30.0)
+    img_resp.raise_for_status()
+
+    image_b64 = base64.b64encode(img_resp.content).decode("utf-8")
+    return image_b64
+
+
 # ── Stable Horde image generation (free, anonymous) ──────────────────────────
 
 async def _stable_horde_generate(
@@ -508,21 +695,41 @@ async def generate_image(
     body: GenerateImageRequest,
     _user: User = Depends(get_current_user),
 ) -> GenerateImageResult:
-    model = body.model or "Deliberate"
+    provider = body.provider or "stable-horde"
+    
     async with httpx.AsyncClient() as client:
         try:
-            image_b64 = await _stable_horde_generate(
-                client, body.prompt, body.width, body.height, model,
-            )
-            return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
+            # NanoBanana (requires API key)
+            if provider == "nanobanana":
+                if not body.api_key:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="NanoBanana requires an API key. Get one free at nanobananaapi.ai",
+                    )
+                model = body.model or "nano-banana"
+                image_b64 = await _nanobanana_generate(
+                    client, body.prompt, body.width, body.height, body.api_key, model,
+                )
+                return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
+            
+            # Stable Horde (default, free, no key needed)
+            else:
+                model = body.model or "Deliberate"
+                image_b64 = await _stable_horde_generate(
+                    client, body.prompt, body.width, body.height, model,
+                )
+                return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
+                
+        except HTTPException:
+            raise
         except httpx.HTTPStatusError as exc:
-            logger.error("❌ Stable Horde HTTP error %s: %s", exc.response.status_code, exc.response.text[:300])
+            logger.error("❌ %s HTTP error %s: %s", provider, exc.response.status_code, exc.response.text[:300])
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Image generation service unavailable. Please try again.",
+                detail=f"{provider} service unavailable. Please try again.",
             ) from exc
         except Exception as exc:
-            logger.error("❌ Image generation failed: %s", exc)
+            logger.error("❌ %s image generation failed: %s", provider, exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=str(exc),

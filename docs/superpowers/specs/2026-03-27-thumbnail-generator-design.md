@@ -1,7 +1,8 @@
 # Thumbnail Generator — Design Spec
 
-**Date:** 2026-03-27
-**Status:** Approved
+**Date:** 2026-03-27  
+**Status:** Approved  
+**Last Updated:** 2026-03-27 (Added mode selector & free generation)
 
 ---
 
@@ -139,7 +140,13 @@ Fonts: ship 2 bold fonts in `backend/assets/fonts/`:
 
 Replaces `ImageGeneratorUI` for the `ai-image` tool. Layout:
 
-1. **Template grid** — 8 cards, 4 per row on desktop / 2 per row on mobile. Each shows a small visual preview + name. Selected state uses neon border.
+**Mode Selector** (NEW - 2026-03-27):
+- 4 buttons: 🖼️ Thumbnail, 💎 Logo (512×512), 📱 Copertina (1080×1080), ✨ Generazione Libera
+- Filters available templates based on selected mode
+- Shows different UI based on mode (template-based vs free generation)
+
+**Template-based Mode** (thumbnail/logo/cover):
+1. **Template grid** — 8 cards (filtered by mode), 4 per row on desktop / 2 per row on mobile. Selected state uses neon border.
 2. **Title input** — required, `max_length=80`
 3. **Subtitle input** — optional
 4. **Accent color picker** — 6 preset swatches: Red `#FF0000`, Blue `#2563EB`, Green `#16A34A`, Yellow `#FFE633`, Purple `#7C3AED`, Cyan `#06B6D4`
@@ -147,6 +154,13 @@ Replaces `ImageGeneratorUI` for the `ai-image` tool. Layout:
 6. **Generate button** → calls `POST /thumbnails/generate`, gets back `job_id`
 7. **Job polling** — polls `GET /jobs/{job_id}` every 2s until `status: completed`
 8. **Result preview** — shows final 16:9 image. Buttons: Rigenera, Download, Salva in fase.
+
+**Free Generation Mode** (NEW - 2026-03-27):
+1. **Provider selector** — NanoBanana (default, requires API key) or Stable Horde (free)
+2. **Prompt input** — multiline textarea for image description
+3. **Generate button** → calls `POST /tools/generate-image` with provider & dimensions
+4. **Result preview** — shows generated image with save/regenerate actions
+5. **Dimensions** — auto-selected based on mode: thumbnail=1280×720, logo=512×512, cover=1080×1080
 
 #### 2. `frontend/app/tool/[id].tsx` — updated
 
@@ -204,3 +218,23 @@ User fills form
 - Drag-and-drop canvas editor
 - Background removal for subject photos (can add later)
 - More than 8 templates at launch
+
+---
+
+## Changelog
+
+### 2026-03-27 - Mode Selector & Free Generation
+**Added:**
+- Mode selector with 4 options: Thumbnail, Logo, Cover, Free Generation
+- Free generation mode without templates (text-to-image)
+- Provider selector for free generation (NanoBanana default, Stable Horde alternative)
+- Template filtering based on selected mode:
+  - Thumbnail: all 8 templates
+  - Logo: minimal, bold-side, neon
+  - Cover: impact, minimal, gradient-bar
+- Auto-dimensioning based on mode
+- Conditional UI: template form vs prompt form
+
+**Files Modified:**
+- `frontend/components/ThumbnailGeneratorUI.tsx` - added mode state, provider selector, free generation logic
+- Integrated with existing `POST /tools/generate-image` endpoint

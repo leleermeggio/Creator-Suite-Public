@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SOCIAL_FORMATS, type SocialFormat } from '@/services/pollinations';
 import { post } from '@/services/apiClient';
 import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
+import { IMAGE_PROVIDERS, type ImageProvider } from '@/types';
+import { useSettings } from '@/hooks/useSettings';
 
 type Mode = 'thumbnail' | 'logo' | 'social-cover';
 
@@ -23,8 +25,10 @@ interface ImageGeneratorUIProps {
 }
 
 export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
+  const { settings } = useSettings();
   const [mode, setMode] = useState<Mode>('thumbnail');
   const [prompt, setPrompt] = useState('');
+  const [provider, setProvider] = useState<ImageProvider>('stable-horde');
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
@@ -32,6 +36,8 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState('');
   const [batchResults, setBatchResults] = useState<Map<SocialFormat, string | null> | null>(null);
+  
+  const selectedProvider = IMAGE_PROVIDERS.find(p => p.id === provider) ?? IMAGE_PROVIDERS[0];
 
   const MODES: { id: Mode; label: string; icon: string; w: number; h: number }[] = [
     { id: 'thumbnail', label: 'Thumbnail', icon: '🖼️', w: 1280, h: 720 },
@@ -63,7 +69,12 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
 
       const res = await post<{ image_base64: string; mime_type: string }>(
         '/tools/generate-image',
-        { prompt: stylePrefix + prompt, ...dims },
+        { 
+          prompt: stylePrefix + prompt, 
+          ...dims,
+          provider,
+          api_key: provider === 'nanobanana' ? settings.nanobananaApiKey : undefined,
+        },
       );
       setImageUri(`data:${res.mime_type};base64,${res.image_base64}`);
     } catch (e: any) {
@@ -89,7 +100,13 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
         const h = fmt.height > 1024 ? 1024 : fmt.height;
         const res = await post<{ image_base64: string; mime_type: string }>(
           '/tools/generate-image',
-          { prompt: stylePrefix + prompt, width: w, height: h },
+          { 
+            prompt: stylePrefix + prompt, 
+            width: w, 
+            height: h,
+            provider,
+            api_key: provider === 'nanobanana' ? settings.nanobananaApiKey : undefined,
+          },
         );
         results.set(key, `data:${res.mime_type};base64,${res.image_base64}`);
       } catch {
@@ -145,6 +162,34 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
             )}
           </Pressable>
         ))}
+      </View>
+
+      {/* Provider selector */}
+      <View style={styles.providerSection}>
+        <Text style={styles.providerLabel}>Provider Immagini</Text>
+        <View style={styles.providerRow}>
+          {IMAGE_PROVIDERS.map(p => (
+            <Pressable
+              key={p.id}
+              onPress={() => setProvider(p.id)}
+              style={({ pressed }) => [
+                styles.providerCard,
+                provider === p.id && styles.providerCardActive,
+                { opacity: pressed ? 0.8 : 1, flex: 1 },
+              ]}
+            >
+              <Text style={[styles.providerName, provider === p.id && styles.providerNameActive]}>
+                {p.name}
+              </Text>
+              <Text style={styles.providerDesc}>{p.description}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {selectedProvider.requiresKey && !settings.nanobananaApiKey && (
+          <Text style={styles.providerWarning}>
+            ⚠️ Configura API key NanoBanana in Impostazioni
+          </Text>
+        )}
       </View>
 
       {/* Prompt input */}
@@ -362,4 +407,23 @@ const styles = StyleSheet.create({
   batchError: { alignItems: 'center', justifyContent: 'center' },
   batchErrorText: { fontSize: 24, color: COLORS.textMuted },
   batchLabel: { fontFamily: FONTS.bodyMedium, fontSize: 11, color: COLORS.textMuted, textAlign: 'center' },
+  providerSection: { gap: SPACING.xs },
+  providerLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textMuted },
+  providerRow: { flexDirection: 'row' as const, gap: SPACING.sm },
+  providerCard: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  providerCardActive: {
+    borderColor: COLORS.neonCyan,
+    backgroundColor: COLORS.neonCyan + '15',
+  },
+  providerName: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary },
+  providerNameActive: { color: COLORS.neonCyan },
+  providerDesc: { fontFamily: FONTS.bodyRegular, fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  providerWarning: { fontFamily: FONTS.bodyRegular, fontSize: 11, color: COLORS.neonOrange, marginTop: SPACING.xs },
 });

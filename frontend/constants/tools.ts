@@ -81,7 +81,7 @@ export const TOOLS: Tool[] = [
     icon: '✂️',
     gradient: COLORS.gradFire,
     accentColor: COLORS.neonPink,
-    available: false,
+    available: true,
   },
   {
     id: 'ai-image',

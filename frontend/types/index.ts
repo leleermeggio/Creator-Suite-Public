@@ -131,6 +131,7 @@ export interface AppSettings {
   googleApiKey: string;
   groqApiKey: string;
   openrouterApiKey: string;
+  nanobananaApiKey: string;
   geminiModel: string;
   notifications: boolean;
   autoProcess: boolean;
@@ -143,8 +144,42 @@ export const DEFAULT_SETTINGS: AppSettings = {
   googleApiKey: '',
   groqApiKey: '',
   openrouterApiKey: '',
+  nanobananaApiKey: '',
   geminiModel: 'gemini-2.0-flash',
   notifications: true,
   autoProcess: false,
   highQuality: true,
 };
+
+export type ImageProvider = 'stable-horde' | 'nanobanana';
+
+export interface ImageProviderConfig {
+  id: ImageProvider;
+  name: string;
+  description: string;
+  requiresKey: boolean;
+  signupUrl: string;
+  models: string[];
+  defaultModel: string;
+}
+
+export const IMAGE_PROVIDERS: ImageProviderConfig[] = [
+  {
+    id: 'stable-horde',
+    name: 'Stable Horde',
+    description: 'Gratuito, nessuna chiave richiesta',
+    requiresKey: false,
+    signupUrl: '',
+    models: ['Deliberate', 'DreamShaper', 'Realistic Vision'],
+    defaultModel: 'Deliberate',
+  },
+  {
+    id: 'nanobanana',
+    name: 'NanoBanana',
+    description: 'Gemini-powered, crediti gratuiti disponibili',
+    requiresKey: true,
+    signupUrl: 'https://nanobananaapi.ai/api-key',
+    models: ['nano-banana', 'nano-banana-pro'],
+    defaultModel: 'nano-banana',
+  },
+];
