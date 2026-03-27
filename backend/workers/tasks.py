@@ -225,6 +225,71 @@ def _handle_caption_burnin(job_id: str, params: dict) -> dict:
 def _handle_thumbnail_or_watermark(job_id: str, params: dict) -> dict:
     action = params.get("action", "")
 
+    if action == "generate_thumbnail":
+        from backend.services.thumbnail_service import generate_thumbnail
+        import base64, os
+        from backend.storage.r2 import R2Client
+        from backend.config import get_settings
+
+        png_bytes = generate_thumbnail(
+            template_id=params.get("template_id", "impact"),
+            title=params.get("title", ""),
+            subtitle=params.get("subtitle"),
+            accent_color=params.get("accent_color", "#FF0000"),
+            subject_photo_b64=params.get("subject_photo_b64"),
+        )
+
+        # Save: try R2, fall back to local tmp
+        storage_key = f"thumbnails/{job_id}.png"
+        download_url: str | None = None
+        try:
+            settings = get_settings()
+            r2 = R2Client(
+                endpoint_url=settings.R2_ENDPOINT_URL,
+                access_key_id=settings.R2_ACCESS_KEY_ID,
+                secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+                bucket_name=settings.R2_BUCKET_NAME,
+            )
+            r2.upload_bytes(png_bytes, storage_key, content_type="image/png")
+            download_url = r2.generate_download_url(storage_key, expires_in=86400)
+        except Exception as e:
+            logger.warning("R2 upload failed (%s) — saving locally", e)
+            local_dir = os.path.join(os.path.dirname(__file__), "..", "..", "media", "thumbnails")
+            os.makedirs(local_dir, exist_ok=True)
+            local_path = os.path.join(local_dir, f"{job_id}.png")
+            with open(local_path, "wb") as f:
+                f.write(png_bytes)
+            storage_key = local_path
+            download_url = None
+
+        # Update thumbnail record
+        import asyncio
+        from sqlalchemy import update
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+        from backend.models.thumbnail import Thumbnail
+        from backend.config import get_settings as gs
+
+        async def _update_db() -> None:
+            s = gs()
+            engine = create_async_engine(s.DATABASE_URL)
+            async_session = async_sessionmaker(engine, expire_on_commit=False)
+            async with async_session() as session:
+                await session.execute(
+                    update(Thumbnail)
+                    .where(Thumbnail.id == job_id)
+                    .values(storage_key=storage_key)
+                )
+                await session.commit()
+            await engine.dispose()
+
+        asyncio.run(_update_db())
+        return {
+            "job_id": job_id,
+            "job_type": "thumbnail",
+            "status": "completed",
+            "result": {"storage_key": storage_key, "download_url": download_url},
+        }
+
     if action == "watermark_image":
         from backend.services.watermark_service import add_watermark
 

@@ -39,6 +39,7 @@ class Thumbnail(Base):
         default=ThumbnailSource.FRAME_EXTRACT, nullable=False
     )
     prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    template_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     width: Mapped[int] = mapped_column(Integer, default=1280, nullable=False)
     height: Mapped[int] = mapped_column(Integer, default=720, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

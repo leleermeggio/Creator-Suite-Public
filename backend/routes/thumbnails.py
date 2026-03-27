@@ -12,6 +12,7 @@ from backend.models.user import User
 from backend.schemas.thumbnail import (
     ThumbnailExtractRequest,
     ThumbnailGenerateRequest,
+    ThumbnailJobResponse,
     ThumbnailResponse,
 )
 from backend.storage.r2 import R2Client
@@ -66,26 +67,44 @@ async def extract_frame(
 
 
 @router.post(
-    "/generate", response_model=ThumbnailResponse, status_code=status.HTTP_201_CREATED
+    "/generate", response_model=ThumbnailJobResponse, status_code=status.HTTP_202_ACCEPTED
 )
 async def generate_thumbnail(
     body: ThumbnailGenerateRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a thumbnail using AI. Placeholder — actual generation in Phase 2."""
+    """Queue a thumbnail generation job. Poll GET /jobs/{job_id} for result."""
     await _verify_project_access(body.project_id, user, db)
 
+    from backend.workers.tasks import process_job
+    import uuid as _uuid
+
     thumb = Thumbnail(
+        id=str(_uuid.uuid4()),
         project_id=body.project_id,
         user_id=user.id,
         source_type=ThumbnailSource.AI_GENERATED,
-        prompt=body.prompt,
+        prompt=body.title,
+        template_id=body.template_id,
     )
     db.add(thumb)
     await db.commit()
-    await db.refresh(thumb)
-    return thumb
+
+    process_job.delay(
+        job_id=thumb.id,
+        job_type="thumbnail",
+        input_params={
+            "action": "generate_thumbnail",
+            "template_id": body.template_id,
+            "title": body.title,
+            "subtitle": body.subtitle,
+            "accent_color": body.accent_color,
+            "subject_photo_b64": body.subject_photo_b64,
+        },
+    )
+
+    return ThumbnailJobResponse(job_id=thumb.id, status="queued")
 
 
 @router.get("/", response_model=list[ThumbnailResponse])

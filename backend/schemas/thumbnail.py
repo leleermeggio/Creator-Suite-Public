@@ -10,14 +10,21 @@ from backend.models.thumbnail import ThumbnailSource
 class ThumbnailExtractRequest(BaseModel):
     project_id: str
     asset_id: str
-    timestamp: float = Field(
-        ge=0.0, description="Timestamp in seconds to extract frame"
-    )
+    timestamp: float = Field(ge=0.0, description="Timestamp in seconds to extract frame")
 
 
 class ThumbnailGenerateRequest(BaseModel):
     project_id: str
-    prompt: str = Field(min_length=1, max_length=1000)
+    template_id: str = Field(default="impact")
+    title: str = Field(min_length=1, max_length=80)
+    subtitle: str | None = Field(default=None, max_length=120)
+    accent_color: str = Field(default="#FF0000", pattern=r"^#[0-9A-Fa-f]{6}$")
+    subject_photo_b64: str | None = None
+
+
+class ThumbnailJobResponse(BaseModel):
+    job_id: str
+    status: str
 
 
 class ThumbnailResponse(BaseModel):
