@@ -20,6 +20,7 @@ import { GlowCard } from '@/components/GlowCard';
 import { GradientText } from '@/components/GradientText';
 import { ComingSoonTool } from '@/components/ComingSoonTool';
 import { ImageGeneratorUI } from '@/components/ImageGeneratorUI';
+import { ThumbnailGeneratorUI } from '@/components/ThumbnailGeneratorUI';
 import { TOOLS } from '@/constants/tools';
 import { useSettings } from '@/hooks/useSettings';
 import { useProject } from '@/hooks/useProject';
@@ -56,6 +57,16 @@ export default function ToolScreen() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else if (projectId) {
+      router.replace(`/project/${projectId}`);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   const tool = TOOLS.find(t => t.id === id);
   const hints = TOOL_HINTS[id ?? ''];
@@ -198,7 +209,7 @@ export default function ToolScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: fadeAnim }}>
-            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
+            <Pressable onPress={handleBack} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
               <Text style={styles.backArrow}>←</Text>
               <Text style={styles.backText}>{projectId ? 'Progetto' : 'Menu'}</Text>
             </Pressable>
@@ -210,7 +221,7 @@ export default function ToolScreen() {
             <GradientText gradient={tool.gradient} style={TYPO.h1}>{tool.name}</GradientText>
             <Text style={styles.toolDescription}>{tool.description}</Text>
           </Animated.View>
-          <ImageGeneratorUI onSave={handleSaveImage} />
+          <ThumbnailGeneratorUI projectId={projectId} onSave={handleSaveImage} />
         </ScrollView>
       </View>
     );
@@ -221,7 +232,7 @@ export default function ToolScreen() {
     return (
       <View style={styles.container}>
         <CosmicBackground />
-        <Pressable onPress={() => router.back()} style={[styles.backBtn, { margin: SPACING.lg, marginTop: Platform.select({ web: 40, default: 60 }) }]}>
+        <Pressable onPress={handleBack} style={[styles.backBtn, { margin: SPACING.lg, marginTop: Platform.select({ web: 40, default: 60 }) }]}>
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backText}>{projectId ? 'Progetto' : 'Menu'}</Text>
         </Pressable>
@@ -240,7 +251,7 @@ export default function ToolScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Animated.View style={{ opacity: fadeAnim }}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
+          <Pressable onPress={handleBack} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
             <Text style={styles.backArrow}>←</Text>
             <Text style={styles.backText}>{projectId ? 'Progetto' : 'Menu'}</Text>
           </Pressable>
