@@ -8,6 +8,8 @@ from deep_translator import GoogleTranslator
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+import base64
+
 from backend.auth.dependencies import get_current_user
 from backend.config import get_settings
 from backend.models.user import User
@@ -46,12 +48,25 @@ class ToolResult(BaseModel):
     result: str
 
 
+class GenerateImageRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=2000)
+    width: int = Field(default=1024, ge=256, le=2048)
+    height: int = Field(default=768, ge=256, le=2048)
+    model: str | None = None
+
+
+class GenerateImageResult(BaseModel):
+    image_base64: str
+    mime_type: str = "image/webp"
+
+
 # ── Provider URLs ─────────────────────────────────────────────────────────────
 
 POLLINATIONS_URL = "https://text.pollinations.ai/openai"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OCR_SPACE_URL = "https://api.ocr.space/parse/image"
+STABLE_HORDE_URL = "https://aihorde.net/api/v2"
 
 
 # ── Unified OpenAI-compatible helper ─────────────────────────────────────────
@@ -400,4 +415,115 @@ async def ocr(
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="OCR service unavailable. Please try again.",
+            ) from exc
+
+
+# ── Stable Horde image generation (free, anonymous) ──────────────────────────
+
+async def _stable_horde_generate(
+    client: httpx.AsyncClient,
+    prompt: str,
+    width: int,
+    height: int,
+    model: str = "DreamShaper",
+) -> str:
+    """Submit and poll Stable Horde for image generation. Returns base64 PNG image."""
+    # Stable Horde requires multiples of 64, cap at 768 for speed
+    w = max(512, min(768, (width // 64) * 64))
+    h = max(512, min(768, (height // 64) * 64))
+
+    quality_suffix = (
+        ", highly detailed, masterpiece, best quality, sharp focus, professional, "
+        "8k uhd, photorealistic"
+    )
+    negative = (
+        "blurry, ugly, deformed, poorly drawn, bad anatomy, extra limbs, "
+        "watermark, signature, text, low quality, worst quality, nsfw"
+    )
+
+    submit_resp = await client.post(
+        f"{STABLE_HORDE_URL}/generate/async",
+        json={
+            "prompt": prompt + quality_suffix + " ### " + negative,
+            "params": {
+                "width": w,
+                "height": h,
+                "steps": 25,
+                "n": 1,
+                "sampler_name": "k_dpmpp_2m",
+                "cfg_scale": 7.5,
+                "karras": True,
+            },
+            "models": [model],
+            "r2": False,
+            "shared": True,
+        },
+        headers={"apikey": "0000000000", "Client-Agent": "CazZoneCreatorSuite:1.0"},
+        timeout=30.0,
+    )
+    submit_resp.raise_for_status()
+    job_id = submit_resp.json().get("id")
+    if not job_id:
+        raise ValueError("Stable Horde did not return a job ID")
+
+    logger.info("🎨 Stable Horde job submitted: %s", job_id)
+
+    # Poll until done (max 120 seconds)
+    for attempt in range(24):
+        await asyncio.sleep(5)
+        check = await client.get(
+            f"{STABLE_HORDE_URL}/generate/check/{job_id}",
+            headers={"apikey": "0000000000"},
+            timeout=10.0,
+        )
+        check.raise_for_status()
+        check_data = check.json()
+        if check_data.get("done"):
+            break
+        queue_pos = check_data.get("queue_position", "?")
+        logger.info("🎨 Waiting for Stable Horde job... queue pos=%s attempt=%d", queue_pos, attempt)
+    else:
+        raise ValueError("Stable Horde job timed out after 120 seconds")
+
+    status_resp = await client.get(
+        f"{STABLE_HORDE_URL}/generate/status/{job_id}",
+        headers={"apikey": "0000000000"},
+        timeout=30.0,
+    )
+    status_resp.raise_for_status()
+    generations = status_resp.json().get("generations", [])
+    if not generations:
+        raise ValueError("Stable Horde returned no generations")
+
+    img_data = generations[0].get("img")
+    if not img_data:
+        raise ValueError("Stable Horde generation has no image data")
+
+    # img is already base64
+    return img_data
+
+
+@router.post("/generate-image", response_model=GenerateImageResult)
+async def generate_image(
+    body: GenerateImageRequest,
+    _user: User = Depends(get_current_user),
+) -> GenerateImageResult:
+    model = body.model or "Deliberate"
+    async with httpx.AsyncClient() as client:
+        try:
+            image_b64 = await _stable_horde_generate(
+                client, body.prompt, body.width, body.height, model,
+            )
+            return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
+        except httpx.HTTPStatusError as exc:
+            logger.error("❌ Stable Horde HTTP error %s: %s", exc.response.status_code, exc.response.text[:300])
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Image generation service unavailable. Please try again.",
+            ) from exc
+        except Exception as exc:
+            logger.error("❌ Image generation failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
             ) from exc

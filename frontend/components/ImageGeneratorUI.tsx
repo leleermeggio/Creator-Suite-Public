@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { buildImageUrl, generateImage, generateImageViaBE, SOCIAL_FORMATS, type SocialFormat } from '@/services/pollinations';
+import { SOCIAL_FORMATS, type SocialFormat } from '@/services/pollinations';
+import { post } from '@/services/apiClient';
 import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
 
 type Mode = 'thumbnail' | 'logo' | 'social-cover';
@@ -45,17 +46,28 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
     setLoading(true);
     setImageUri(null);
     setImageError(false);
-    setImageLoading(true);
+    setImageLoading(false);
     try {
-      if (projectId) {
-        const url = await generateImageViaBE(prompt, projectId);
-        if (url) { setImageUri(url); setLoading(false); return; }
-      }
-      const url = await generateImage(prompt, mode, currentMode.w, currentMode.h);
-      setImageUri(url);
-    } catch {
-      const url = buildImageUrl(prompt, mode, currentMode.w, currentMode.h);
-      setImageUri(url);
+      const stylePrefix = mode === 'thumbnail'
+        ? 'YouTube thumbnail style, bold text, expressive, high contrast, '
+        : mode === 'logo'
+        ? 'minimalist logo design, clean vector style, centered, '
+        : 'social media cover image, vibrant, eye-catching, ';
+
+      // Use mode-appropriate aspect ratios (backend caps at 768)
+      const dims = mode === 'thumbnail'
+        ? { width: 768, height: 512 }   // 3:2 landscape
+        : mode === 'logo'
+        ? { width: 512, height: 512 }   // 1:1 square
+        : { width: 576, height: 768 };  // 3:4 portrait (social)
+
+      const res = await post<{ image_base64: string; mime_type: string }>(
+        '/tools/generate-image',
+        { prompt: stylePrefix + prompt, ...dims },
+      );
+      setImageUri(`data:${res.mime_type};base64,${res.image_base64}`);
+    } catch (e: any) {
+      setImageError(true);
     } finally {
       setLoading(false);
     }
@@ -67,18 +79,22 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
     setBatchResults(null);
     const results = new Map<SocialFormat, string | null>();
     const formats = Object.entries(SOCIAL_FORMATS) as [SocialFormat, (typeof SOCIAL_FORMATS)[SocialFormat]][];
+    const stylePrefix = 'social media cover image, vibrant, eye-catching, ';
 
     for (let i = 0; i < formats.length; i++) {
       const [key, fmt] = formats[i];
       setBatchProgress(`Generando ${i + 1} di ${formats.length}... ${fmt.label}`);
       try {
-        const url = buildImageUrl(prompt, mode, fmt.width, fmt.height);
-        results.set(key, url);
+        const w = fmt.width > 1024 ? 1024 : fmt.width;
+        const h = fmt.height > 1024 ? 1024 : fmt.height;
+        const res = await post<{ image_base64: string; mime_type: string }>(
+          '/tools/generate-image',
+          { prompt: stylePrefix + prompt, width: w, height: h },
+        );
+        results.set(key, `data:${res.mime_type};base64,${res.image_base64}`);
       } catch {
         results.set(key, null);
       }
-      // small delay to avoid rate limiting
-      await new Promise(r => setTimeout(r, 300));
     }
     setBatchResults(new Map(results));
     setBatchLoading(false);
@@ -178,6 +194,9 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
         )}
       </View>
 
+      {loading && (
+        <Text style={styles.progressText}>✨ Generazione in corso... (30–90 sec)</Text>
+      )}
       {batchProgress ? (
         <Text style={styles.progressText}>{batchProgress}</Text>
       ) : null}
@@ -186,29 +205,22 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
       {imageUri && !batchResults && (
         <View style={styles.previewSection}>
           <View>
-            <Image
-              source={{ uri: imageUri }}
-              style={[
-                styles.previewImage,
-                mode === 'logo' && { aspectRatio: 1 },
-                mode === 'social-cover' && { aspectRatio: 1 },
-              ]}
-              resizeMode="contain"
-              onLoadStart={() => setImageLoading(true)}
-              onLoad={() => { setImageLoading(false); setImageError(false); }}
-              onError={() => { setImageLoading(false); setImageError(true); }}
-            />
-            {imageLoading && (
-              <View style={styles.imageOverlay}>
-                <ActivityIndicator color={COLORS.neonMagenta} size="large" />
-                <Text style={styles.imageLoadingText}>Generando immagine...</Text>
-              </View>
-            )}
-            {imageError && (
-              <View style={styles.imageOverlay}>
+            {imageError ? (
+              <View style={[styles.previewImage, styles.imageOverlay]}>
                 <Text style={styles.imageErrorIcon}>⚠️</Text>
-                <Text style={styles.imageErrorText}>Immagine non disponibile. Riprova.</Text>
+                <Text style={styles.imageErrorText}>Generazione fallita. Riprova.</Text>
               </View>
+            ) : (
+              <Image
+                source={{ uri: imageUri }}
+                style={[
+                  styles.previewImage,
+                  mode === 'thumbnail' && { aspectRatio: 3 / 2 },
+                  mode === 'logo' && { aspectRatio: 1 },
+                  mode === 'social-cover' && { aspectRatio: 3 / 4 },
+                ]}
+                resizeMode="contain"
+              />
             )}
           </View>
           <View style={styles.previewActions}>
