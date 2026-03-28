@@ -20,11 +20,12 @@ from bot.handlers.info import info_selected, process_info
 from bot.handlers.tts import tts_selected, process_tts
 from bot.handlers.convert import convert_selected, convert_fmt_selected, process_convert
 from bot.handlers.jumpcut import jumpcut_selected, process_jumpcut_video, jumpcut_help_cmd
+from bot.handlers.generate_image import generate_image_selected, process_generate_image, unset_api_key_cmd
 from bot.config import (
     CHOOSING, TRANSCRIBE_WAIT, TRANSLATE_LANG, TRANSLATE_WAIT,
     IMAGES_WAIT, MP3_WAIT, VIDEO_WAIT, SUMMARIZE_WAIT,
     OCR_WAIT, INFO_WAIT, TTS_WAIT, CONVERT_FMT, CONVERT_WAIT, JUMPCUT_WAIT,
-    ensure_directories, TELEGRAM_TOKEN,
+    GENERATE_IMAGE_WAIT, ensure_directories, TELEGRAM_TOKEN,
 )
 
 logger = logging.getLogger("bot")
@@ -92,6 +93,7 @@ def main():
                 CallbackQueryHandler(info_selected, pattern="^info$"),
                 CallbackQueryHandler(tts_selected, pattern="^tts$"),
                 CallbackQueryHandler(jumpcut_selected, pattern="^jumpcut$"),
+                CallbackQueryHandler(generate_image_selected, pattern="^generate_image$"),
             ],
             TRANSCRIBE_WAIT: [
                 MessageHandler(
@@ -166,6 +168,10 @@ def main():
                 ),
                 CallbackQueryHandler(back_to_menu, pattern="^back$"),
             ],
+            GENERATE_IMAGE_WAIT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_generate_image),
+                CallbackQueryHandler(back_to_menu, pattern="^back$"),
+            ],
         },
         fallbacks=[
             CommandHandler("start", start_cmd),
@@ -174,6 +180,7 @@ def main():
 
     app.add_handler(conv)
     app.add_handler(CommandHandler("jumpcut_help", jumpcut_help_cmd))
+    app.add_handler(CommandHandler("unset_api", unset_api_key_cmd))
 
     def shutdown_handler(sig, frame):
         logger.info("🛑 Segnale %s — arresto", sig)

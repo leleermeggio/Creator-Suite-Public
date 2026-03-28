@@ -14,7 +14,6 @@ from telegram.ext import ContextTypes
 from bot.config import CHOOSING, TRANSCRIBE_WAIT, AUDIO_DIR
 from bot.keyboards import BACK_KB
 from bot.utils import _del_many, _escape_html, _blockquote, _split_text, _cleanup_downloads_bg, _get_ext
-from bot.transcriber_helper import get_transcriber, TRANSCRIBER_AVAILABLE
 
 logger = logging.getLogger("bot")
 
@@ -25,16 +24,6 @@ async def transcribe_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
     context.user_data["menu_msg"] = query.message.message_id
     logger.info("🎙️ %s → Trascrivi", update.effective_user.full_name)
-
-    if not TRANSCRIBER_AVAILABLE:
-        await query.edit_message_text(
-            "━━ 🎙 <b>Trascrivi Audio</b> ━━\n\n"
-            "⚠️ Funzione non disponibile.\n"
-            "Il modulo Whisper non è installato.\n\n"
-            "Contatta l'amministratore per attivare la trascrizione.",
-            reply_markup=BACK_KB, parse_mode=ParseMode.HTML,
-        )
-        return CHOOSING
 
     await query.edit_message_text(
         "━━ 🎙 <b>Trascrivi Audio</b> ━━\n\n"
@@ -50,7 +39,9 @@ async def transcribe_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def process_transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Elabora la trascrizione di audio o link."""
     from bot.utils import URL_RE
-    from downloader import download_audio
+    from bot.downloader import download_audio
+    from bot.handlers.base import _send_menu
+    from bot.transcriber_helper import get_transcriber
 
     user = update.effective_user
     msg = update.message
@@ -100,8 +91,7 @@ async def process_transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await status_msg.edit_text("⚙️ Whisper in esecuzione…")
         logger.info("⚙️  Whisper in esecuzione…")
         loop = asyncio.get_running_loop()
-        from bot.transcriber import WhisperTranscriber
-        transcriber = WhisperTranscriber()
+        transcriber = get_transcriber()
         transcript = await loop.run_in_executor(None, transcriber.transcribe, audio_path)
 
         # Cancella input + status

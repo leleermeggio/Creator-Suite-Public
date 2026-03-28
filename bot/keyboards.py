@@ -27,7 +27,8 @@ MENU_KB = InlineKeyboardMarkup([
      InlineKeyboardButton("🔍  OCR", callback_data="ocr")],
     [InlineKeyboardButton("📊  Info Link", callback_data="info"),
      InlineKeyboardButton("🗣️  TTS", callback_data="tts")],
-    [InlineKeyboardButton("✂️  Jump Cut", callback_data="jumpcut")],
+    [InlineKeyboardButton("✂️  Jump Cut", callback_data="jumpcut"),
+     InlineKeyboardButton("🎨  Genera", callback_data="generate_image")],
 ])
 
 BACK_KB = InlineKeyboardMarkup([

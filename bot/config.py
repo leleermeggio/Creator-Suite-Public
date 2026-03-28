@@ -67,7 +67,8 @@ _VIDEO_EXT = {".mp4", ".mkv", ".webm", ".avi", ".mov"}
     CONVERT_FMT,
     CONVERT_WAIT,
     JUMPCUT_WAIT,
-) = range(14)
+    GENERATE_IMAGE_WAIT,
+) = range(15)
 
 # ---------------------------------------------------------------------------
 # Ensure directories exist

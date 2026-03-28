@@ -159,4 +159,4 @@ async def jumpcut_help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "  ◦ Limite file Telegram: 50 MB\n"
         "  ◦ Video molto lunghi richiedono più tempo"
     )
-    await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(help_text, parse_mode=ParseMode.HTML, reply_markup=BACK_KB)

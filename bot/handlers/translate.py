@@ -15,7 +15,7 @@ from bot.config import CHOOSING, TRANSLATE_LANG, TRANSLATE_WAIT, AUDIO_DIR
 from bot.keyboards import BACK_KB, LANG_KB
 from bot.utils import _del_many, _escape_html, _blockquote, _split_text, _cleanup_downloads_bg, _get_ext
 from bot.translator import translate_text, LANGUAGES
-from bot.transcriber_helper import get_transcriber, TRANSCRIBER_AVAILABLE
+from bot.transcriber_helper import get_transcriber
 from bot.utils import URL_RE
 
 logger = logging.getLogger("bot")
@@ -74,10 +74,6 @@ async def process_translate(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     try:
         if msg.voice or msg.audio:
-            if not TRANSCRIBER_AVAILABLE:
-                await msg.reply_text("⚠️ Trascrizione non disponibile. Invia solo testo.", reply_markup=BACK_KB)
-                return TRANSLATE_WAIT
-
             source = msg.voice or msg.audio
             logger.info("🌍 [Traduci] %s da %s", "vocale" if msg.voice else "audio", user.full_name)
             status_msg = await msg.reply_text("⏳ Trascrizione + traduzione…")
@@ -115,10 +111,6 @@ async def process_translate(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         elif msg.text:
             urls = URL_RE.findall(msg.text)
             if urls:
-                if not TRANSCRIBER_AVAILABLE:
-                    await msg.reply_text("⚠️ Trascrizione link non disponibile. Invia solo testo.", reply_markup=BACK_KB)
-                    return TRANSLATE_WAIT
-
                 url = urls[0]
                 logger.info("🌍 [Traduci] Link da %s: %s", user.full_name, url)
                 status_msg = await msg.reply_text("⏳ Download + trascrizione + traduzione…")
