@@ -34,7 +34,12 @@ from telegram.ext import (
     filters,
 )
 
-from transcriber import WhisperTranscriber
+try:
+    from transcriber import WhisperTranscriber
+    _TRANSCRIBER_AVAILABLE = True
+except ImportError:
+    WhisperTranscriber = None  # type: ignore
+    _TRANSCRIBER_AVAILABLE = False
 from translator import translate_text, LANGUAGES
 from downloader import (
     download_mp3, download_images, download_audio,
@@ -83,13 +88,15 @@ for noisy in ("httpx", "httpcore", "telegram.ext", "urllib3"):
 logger = logging.getLogger("bot")
 
 # ---------------------------------------------------------------------------
-# Whisper — caricato lazy al primo utilizzo
+# Whisper — caricato lazy al primo utilizzo (se disponibile)
 # ---------------------------------------------------------------------------
-_transcriber: WhisperTranscriber | None = None
+_transcriber: "WhisperTranscriber | None" = None
 
 
-def _get_transcriber() -> WhisperTranscriber:
+def _get_transcriber() -> "WhisperTranscriber":
     global _transcriber
+    if not _TRANSCRIBER_AVAILABLE:
+        raise RuntimeError("Whisper non disponibile. Installa torch e openai-whisper.")
     if _transcriber is None:
         _transcriber = WhisperTranscriber(WHISPER_MODEL, TRANSCRIBE_LANGUAGE)
     return _transcriber
@@ -329,6 +336,17 @@ async def transcribe_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
     context.user_data["menu_msg"] = query.message.message_id
     logger.info("🎙️ %s → Trascrivi", update.effective_user.full_name)
+
+    if not _TRANSCRIBER_AVAILABLE:
+        await query.edit_message_text(
+            "━━ 🎙 <b>Trascrivi Audio</b> ━━\n\n"
+            "⚠️ Funzione non disponibile.\n"
+            "Il modulo Whisper non è installato.\n\n"
+            "Contatta l'amministratore per attivare la trascrizione.",
+            reply_markup=BACK_KB, parse_mode=ParseMode.HTML,
+        )
+        return CHOOSING
+
     await query.edit_message_text(
         "━━ 🎙 <b>Trascrivi Audio</b> ━━\n\n"
         "Inviami:\n"
@@ -1437,11 +1455,9 @@ async def jumpcut_help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 # ===================================================================
 async def post_init(app: Application) -> None:
     await app.bot.set_my_commands([
-        BotCommand("start", "Apri il menu"),
-        BotCommand("menu", "Apri il menu (alias)"),
-        BotCommand("jumpcut_help", "Guida Jump Cut"),
+        BotCommand("start", "Creator Suite"),
     ])
-    logger.info("📝 Comandi registrati")
+    logger.info("📝 Comando registrato: /start - Creator Suite")
 
 
 def main():
@@ -1560,7 +1576,8 @@ def main():
 
     app.add_handler(conv)
     app.add_handler(CommandHandler("jumpcut_help", jumpcut_help_cmd))
-    app.add_handler(CommandHandler("menu", start_cmd))  # fuori dalla conversazione
+    # Nota: /menu è già gestito dentro conv (entry_points + fallbacks)
+    # NON aggiungere altri handler per /menu qui fuori
 
     def shutdown_handler(sig, frame):
         logger.info("🛑 Segnale %s — arresto", sig)
