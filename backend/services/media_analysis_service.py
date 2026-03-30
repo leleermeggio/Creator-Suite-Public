@@ -247,14 +247,27 @@ Rules:
             logger.warning("Gemini returned non-list for insights: %r", type(data))
             return []
 
+        _ALLOWED_INSIGHT_TOOLS = {
+            "jumpcut", "caption", "thumbnail", "transcribe", "translate",
+            "tts", "export", "audio_cleanup", "analyze_media", None,
+        }
         insights = []
         for item in data:
+            action_tool = item.get("action_tool")
+            if action_tool not in _ALLOWED_INSIGHT_TOOLS:
+                action_tool = None
+            # Only allow simple primitive values in action_params
+            raw_params = item.get("action_params") or {}
+            safe_params = {
+                k: v for k, v in raw_params.items()
+                if isinstance(v, (str, int, float, bool)) and len(str(v)) < 200
+            }
             insights.append({
                 "id": str(uuid.uuid4()),
                 "type": str(item.get("type", "opportunity")),
                 "message": str(item.get("message", ""))[:200],
-                "action_tool": item.get("action_tool"),
-                "action_params": item.get("action_params") or {},
+                "action_tool": action_tool,
+                "action_params": safe_params,
                 "status": "PENDING",
                 "confidence": float(item.get("confidence", 0.5)),
             })

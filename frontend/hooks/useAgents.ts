@@ -19,8 +19,8 @@ export function useAgents() {
       const [all, presetList] = await Promise.all([listAgents(), listPresetAgents()]);
       setAgents(all.filter((a) => !a.is_preset));
       setPresets(presetList);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to load agents');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Errore nel caricamento agenti');
     } finally {
       setLoading(false);
     }

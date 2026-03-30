@@ -74,6 +74,9 @@ export default function RootLayout() {
             <Stack.Screen name="new-project/index" />
             <Stack.Screen name="new-project/ai-setup" />
             <Stack.Screen name="new-project/customize" />
+            <Stack.Screen name="agent/[id]" />
+            <Stack.Screen name="agent/new" />
+            <Stack.Screen name="mission/[id]" />
           </Stack>
         </AuthGate>
       </AuthProvider>

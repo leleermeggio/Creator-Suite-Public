@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -156,7 +157,7 @@ async def seed_presets(db: AsyncSession) -> int:
             continue
 
         agent = Agent(
-            user_id="system",
+            user_id=None,
             name=preset_data["name"],
             icon=preset_data["icon"],
             description=preset_data["description"],
@@ -236,8 +237,19 @@ Rules:
 - condition is null unless duration-based (e.g. "duration > 60")
 """
 
+    _ALLOWED_TOOL_IDS = {
+        "download", "transcribe", "jumpcut", "caption", "thumbnail",
+        "export", "audio_cleanup", "translate", "tts", "analyze_media", "convert",
+    }
+    _ALLOWED_MODES = {"REGISTA", "COPILOTA", "AUTOPILOTA"}
+    _ALLOWED_PLATFORMS = {
+        "youtube", "tiktok", "instagram", "reels", "shorts",
+        "podcast", "blog", "linkedin", "spotify",
+    }
+
     try:
-        response = model.generate_content(prompt)
+        # generate_content is blocking — run in thread to avoid blocking the event loop
+        response = await asyncio.to_thread(model.generate_content, prompt)
         raw = response.text.strip()
         if raw.startswith("```"):
             parts = raw.split("```")
@@ -248,14 +260,55 @@ Rules:
 
         data = json.loads(raw)
 
+        # Validate and sanitize AI-generated steps — never trust Gemini output directly
+        raw_steps = data.get("steps", [])
+        if not isinstance(raw_steps, list):
+            raise ValueError("AI returned invalid steps format")
+
+        validated_steps = []
+        for raw_step in raw_steps:
+            if not isinstance(raw_step, dict):
+                continue
+            tool_id = str(raw_step.get("tool_id", ""))
+            if tool_id not in _ALLOWED_TOOL_IDS:
+                logger.warning("⚠️ AI returned unknown tool_id %r — skipping step", tool_id)
+                continue
+            # Only allow simple primitive values in parameters
+            params = raw_step.get("parameters") or {}
+            safe_params = {
+                k: v for k, v in params.items()
+                if isinstance(v, (str, int, float, bool)) and len(str(v)) < 500
+            }
+            # Condition must match simple comparison pattern or be null
+            condition = raw_step.get("condition")
+            if condition is not None:
+                import re as _re_check
+                if not _re_check.match(r"^\w+\s*(>|<|>=|<=|==|!=)\s*\d+(?:\.\d+)?$", str(condition).strip()):
+                    condition = None
+            validated_steps.append({
+                "tool_id": tool_id,
+                "label": str(raw_step.get("label", tool_id))[:100],
+                "parameters": safe_params,
+                "auto_run": bool(raw_step.get("auto_run", False)),
+                "required": bool(raw_step.get("required", True)),
+                "condition": condition,
+            })
+
+        raw_mode = str(data.get("default_mode", "COPILOTA")).upper()
+        if raw_mode not in _ALLOWED_MODES:
+            raw_mode = "COPILOTA"
+
+        raw_platforms = data.get("target_platforms", [])
+        safe_platforms = [p for p in raw_platforms if isinstance(p, str) and p in _ALLOWED_PLATFORMS]
+
         agent = Agent(
             user_id=user_id,
             name=str(data.get("name", "Agente AI"))[:255],
             icon=str(data.get("icon", "🤖"))[:10],
             description=str(data.get("description", ""))[:1000],
-            steps=data.get("steps", []),
-            default_mode=ControlMode(data.get("default_mode", "COPILOTA")),
-            target_platforms=data.get("target_platforms", []),
+            steps=validated_steps,
+            default_mode=ControlMode(raw_mode),
+            target_platforms=safe_platforms,
             is_preset=False,
         )
         db.add(agent)
@@ -264,8 +317,8 @@ Rules:
         return agent
 
     except json.JSONDecodeError as exc:
-        logger.error("Gemini returned invalid JSON for agent generation: %s", exc)
+        logger.error("❌ Gemini returned invalid JSON for agent generation: %s", exc)
         raise ValueError(f"AI ha restituito una risposta non valida: {exc}") from exc
     except Exception as exc:
-        logger.error("Agent generation failed: %s", exc)
+        logger.error("❌ Agent generation failed: %s", exc)
         raise

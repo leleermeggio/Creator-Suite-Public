@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useRef, useCallback } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
 import { FONTS, RADIUS, SPACING } from '@/constants/theme';
 import type { InsightCardData } from '@/services/missionsApi';
@@ -27,13 +28,28 @@ export function InsightCard({ insight, onAccept, onDismiss, onSave }: InsightCar
   const isPending = insight.status === 'PENDING';
   const confidencePct = Math.round(insight.confidence * 100);
 
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const animateThenCall = useCallback((callback?: () => void) => {
+    if (!callback) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => callback());
+  }, [fadeAnim]);
+
   return (
-    <View
+    <Animated.View
       style={[
         styles.card,
         {
           backgroundColor: palette.elevated,
           borderColor: isPending ? `${meta.color}33` : palette.border,
+          opacity: fadeAnim,
         },
       ]}
     >
@@ -87,12 +103,13 @@ export function InsightCard({ insight, onAccept, onDismiss, onSave }: InsightCar
         <View style={styles.actions}>
           {onAccept && (
             <Pressable
-              onPress={onAccept}
+              onPress={() => animateThenCall(onAccept)}
               style={({ pressed }) => [
                 styles.actionBtn,
                 styles.actionPrimary,
                 { borderColor: meta.color, backgroundColor: `${meta.color}18` },
                 pressed && { opacity: 0.7 },
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
               ]}
             >
               <Text style={[styles.actionText, { color: meta.color }]}>Applica</Text>
@@ -105,6 +122,7 @@ export function InsightCard({ insight, onAccept, onDismiss, onSave }: InsightCar
                 styles.actionBtn,
                 { borderColor: palette.border },
                 pressed && { opacity: 0.7 },
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
               ]}
             >
               <Text style={[styles.actionText, { color: palette.textSecondary }]}>Dopo</Text>
@@ -112,11 +130,12 @@ export function InsightCard({ insight, onAccept, onDismiss, onSave }: InsightCar
           )}
           {onDismiss && (
             <Pressable
-              onPress={onDismiss}
+              onPress={() => animateThenCall(onDismiss)}
               style={({ pressed }) => [
                 styles.actionBtn,
                 { borderColor: palette.border },
                 pressed && { opacity: 0.7 },
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
               ]}
             >
               <Text style={[styles.actionText, { color: palette.textMuted }]}>Ignora</Text>
@@ -124,7 +143,7 @@ export function InsightCard({ insight, onAccept, onDismiss, onSave }: InsightCar
           )}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 

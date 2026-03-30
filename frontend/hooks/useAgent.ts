@@ -19,8 +19,8 @@ export function useAgent(id: string | null) {
     try {
       const data = await getAgent(id);
       setAgent(data);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to load agent');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Errore nel caricamento agente');
     } finally {
       setLoading(false);
     }

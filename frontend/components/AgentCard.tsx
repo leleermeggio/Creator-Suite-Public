@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { FONTS, RADIUS, SPACING } from '@/constants/theme';
 import { getPlatformDef } from '@/constants/platforms';
@@ -18,7 +18,33 @@ export function AgentCard({ agent, onPress, onEdit, onDelete }: AgentCardProps) 
   const steps = agent.steps ?? [];
   const platforms = (agent.target_platforms ?? []).slice(0, 3);
 
+  // Entrance animation: fade in + slide up
+  const entranceOpacity = useRef(new Animated.Value(0)).current;
+  const entranceTranslateY = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(entranceOpacity, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.spring(entranceTranslateY, {
+        toValue: 0,
+        tension: 200,
+        friction: 22,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [entranceOpacity, entranceTranslateY]);
+
   return (
+    <Animated.View
+      style={{
+        opacity: entranceOpacity,
+        transform: [{ translateY: entranceTranslateY }],
+      }}
+    >
     <Pressable
       onPress={onPress}
       {...(Platform.OS === 'web'
@@ -122,6 +148,7 @@ export function AgentCard({ agent, onPress, onEdit, onDelete }: AgentCardProps) 
         </Text>
       </View>
     </Pressable>
+    </Animated.View>
   );
 }
 
@@ -132,6 +159,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     gap: SPACING.xs,
     position: 'relative',
+    overflow: 'hidden',
   },
   cardHovered: {
     transform: [{ translateY: -2 }],

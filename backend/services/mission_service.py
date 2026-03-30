@@ -42,19 +42,36 @@ def _should_auto_run(step_def: dict[str, Any], mode: ControlMode) -> bool:
     return bool(step_def.get("auto_run", False))
 
 
-def _evaluate_condition(condition: str | None, context: dict[str, Any]) -> bool:
-    """Safely evaluate a step condition expression like 'duration > 60'.
+import operator as _op
+import re as _re
 
-    Returns True (step should run) when condition is None or evaluates truthy.
-    Falls back to True on any evaluation error.
+_CONDITION_RE = _re.compile(r"^(\w+)\s*(>|<|>=|<=|==|!=)\s*(\d+(?:\.\d+)?)$")
+_OPS = {
+    ">": _op.gt, "<": _op.lt, ">=": _op.ge,
+    "<=": _op.le, "==": _op.eq, "!=": _op.ne,
+}
+
+
+def _evaluate_condition(condition: str | None, context: dict[str, Any]) -> bool:
+    """Evaluate a step condition expression like 'duration > 60'.
+
+    Only simple `<variable> <op> <number>` comparisons are supported.
+    Returns True (step should run) when condition is None or cannot be parsed.
     """
     if not condition:
         return True
+    match = _CONDITION_RE.match(condition.strip())
+    if not match:
+        logger.warning("⚠️ Condition syntax not supported (%r) — defaulting to True", condition)
+        return True
+    var_name, op_str, value_str = match.groups()
+    left = context.get(var_name)
+    if left is None:
+        return True
     try:
-        safe_names = {k: v for k, v in context.items() if isinstance(v, (int, float, bool, str))}
-        return bool(eval(condition, {"__builtins__": {}}, safe_names))  # noqa: S307
-    except Exception as exc:
-        logger.warning("Condition eval failed (%r): %s — defaulting to True", condition, exc)
+        return _OPS[op_str](float(left), float(value_str))
+    except (TypeError, ValueError) as exc:
+        logger.warning("⚠️ Condition eval failed (%r): %s — defaulting to True", condition, exc)
         return True
 
 

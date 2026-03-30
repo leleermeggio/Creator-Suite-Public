@@ -110,7 +110,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
               <Pressable
                 key={item.id}
                 onPress={() => navigate(item.href)}
-                style={({ pressed, hovered }: any) => [
+                style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
                   styles.navItem,
                   { borderRadius: RADIUS.md },
                   active && { backgroundColor: palette.sidebarActive },
@@ -131,6 +131,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
                       },
                     ]}
                     numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {item.label}
                   </Text>
@@ -170,7 +171,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
             <Pressable
               key={item.id}
               onPress={() => navigate(item.href)}
-              style={({ pressed, hovered }: any) => [
+              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
                 styles.navItem,
                 { borderRadius: RADIUS.md },
                 (pressed || hovered) && { backgroundColor: palette.elevated },
@@ -187,6 +188,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
                     { color: palette.textSecondary, fontFamily: FONTS.bodyMedium },
                   ]}
                   numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {item.label}
                 </Text>
@@ -200,7 +202,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
       <View style={[styles.themeRow, { borderTopColor: palette.border }]}>
         <Pressable
           onPress={toggleTheme}
-          style={({ pressed }: any) => [
+          style={({ pressed }: { pressed: boolean }) => [
             styles.themeButton,
             {
               backgroundColor: pressed ? palette.elevated : 'transparent',
@@ -213,7 +215,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
           {showLabels && (
             <View style={{ flex: 1 }}>
               <Text style={[styles.navLabel, { color: palette.textSecondary, fontFamily: FONTS.bodyMedium }]}>
-                {isDark ? 'Light Mode' : 'Dark Mode'}
+                {isDark ? 'Tema chiaro' : 'Tema scuro'}
               </Text>
               {Platform.OS === 'web' && (
                 <Text style={[styles.shortcut, { color: palette.textMuted }]}>
@@ -245,11 +247,12 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onClose }: Sideba
             <Text
               style={[styles.profileName, { color: palette.text }]}
               numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {user.display_name || user.email}
             </Text>
             <Text style={[styles.profilePlan, { color: palette.cyan }]}>
-              Free Plan
+              Piano Gratuito
             </Text>
           </View>
         </View>

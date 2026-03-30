@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
 import { FONTS, RADIUS, SPACING } from '@/constants/theme';
 import { CONTROL_MODE_LABELS, type ControlMode } from '@/constants/agents';
@@ -15,6 +16,27 @@ interface ControlSliderProps {
 
 export function ControlSlider({ mode, onChange, disabled = false, compact = false }: ControlSliderProps) {
   const { palette } = useTheme();
+  const activeIndex = MODES.indexOf(mode);
+
+  // Animated highlight position
+  const slideAnim = useRef(new Animated.Value(activeIndex)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeIndex,
+      useNativeDriver: false,
+      tension: 180,
+      friction: 20,
+    }).start();
+  }, [activeIndex, slideAnim]);
+
+  const handleChange = (m: ControlMode) => {
+    if (disabled || m === mode) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    onChange(m);
+  };
 
   return (
     <View
@@ -24,13 +46,13 @@ export function ControlSlider({ mode, onChange, disabled = false, compact = fals
         compact && styles.containerCompact,
       ]}
     >
-      {MODES.map((m) => {
+      {MODES.map((m, idx) => {
         const isActive = m === mode;
         const meta = CONTROL_MODE_LABELS[m];
         return (
           <Pressable
             key={m}
-            onPress={() => !disabled && onChange(m)}
+            onPress={() => handleChange(m)}
             style={({ pressed }) => [
               styles.segment,
               compact && styles.segmentCompact,
@@ -42,6 +64,9 @@ export function ControlSlider({ mode, onChange, disabled = false, compact = fals
               disabled && { opacity: 0.5 },
               Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),
             ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isActive, disabled }}
+            accessibilityLabel={meta.label}
           >
             <Text style={[styles.emoji, compact && styles.emojiCompact]}>{meta.emoji}</Text>
             <Text
@@ -77,6 +102,9 @@ const styles = StyleSheet.create({
   segment: {
     flex: 1,
     alignItems: 'center',
+    // Minimum touch target: 44pt tall (Apple HIG)
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xs,
     borderWidth: 1,
@@ -85,6 +113,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   segmentCompact: {
+    minHeight: 44,
     paddingVertical: 6,
     flexDirection: 'row',
     gap: SPACING.xs,

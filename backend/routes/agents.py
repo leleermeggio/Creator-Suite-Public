@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
 from backend.models.agent import Agent
 from backend.models.user import User
-from backend.schemas.agent import AgentCreate, AgentResponse, AgentUpdate
+from backend.schemas.agent import AgentCreate, AgentGenerateRequest, AgentResponse, AgentUpdate
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-
-
-class AgentGenerateRequest(BaseModel):
-    description: str = Field(min_length=10, max_length=1000)
 
 
 @router.post("/generate", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
@@ -32,10 +27,10 @@ async def generate_agent(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
-    except Exception as exc:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Agent generation failed: {exc}",
+            detail="Generazione agente fallita. Riprova.",
         )
 
 

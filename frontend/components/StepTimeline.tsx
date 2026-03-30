@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { FONTS, SPACING } from '@/constants/theme';
+import { FONTS, SPACING, type ThemePalette } from '@/constants/theme';
 
 export type StepStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'SKIPPED' | 'FAILED';
 
@@ -50,7 +50,7 @@ function PulseDot({ color }: { color: string }) {
   );
 }
 
-function getDotColor(status: StepStatus, palette: any): string {
+function getDotColor(status: StepStatus, palette: ThemePalette): string {
   switch (status) {
     case 'COMPLETED': return palette.cyan;
     case 'RUNNING': return palette.cyan;
@@ -58,6 +58,54 @@ function getDotColor(status: StepStatus, palette: any): string {
     case 'SKIPPED': return palette.textMuted;
     default: return palette.border;
   }
+}
+
+// Animated dot that fades+scales in when a step becomes COMPLETED or FAILED
+function CompletedDot({
+  dotColor,
+  status,
+  compact,
+}: {
+  dotColor: string;
+  status: StepStatus;
+  compact: boolean;
+}) {
+  const scaleAnim = useRef(new Animated.Value(0.4)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 220,
+        friction: 18,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, opacityAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.dot,
+        styles.dotCompleted,
+        compact ? styles.dotCompact : undefined,
+        { backgroundColor: dotColor, transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+      ]}
+    >
+      {status === 'COMPLETED' && (
+        <Text style={styles.checkmark}>✓</Text>
+      )}
+      {status === 'FAILED' && (
+        <Text style={styles.checkmark}>✕</Text>
+      )}
+    </Animated.View>
+  );
 }
 
 export function StepTimeline({ steps, currentIndex, compact = false }: StepTimelineProps) {
@@ -78,23 +126,17 @@ export function StepTimeline({ steps, currentIndex, compact = false }: StepTimel
             <View style={styles.dotCol}>
               {isCurrent ? (
                 <PulseDot color={palette.cyan} />
+              ) : (step.status === 'COMPLETED' || step.status === 'FAILED') ? (
+                <CompletedDot dotColor={dotColor} status={step.status} compact={compact} />
               ) : (
                 <View
                   style={[
                     styles.dot,
                     compact ? styles.dotCompact : undefined,
-                    step.status === 'COMPLETED' && styles.dotCompleted,
                     { backgroundColor: step.status === 'PENDING' ? 'transparent' : dotColor,
                       borderColor: dotColor },
                   ]}
-                >
-                  {step.status === 'COMPLETED' && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                  {step.status === 'FAILED' && (
-                    <Text style={styles.checkmark}>✕</Text>
-                  )}
-                </View>
+                />
               )}
               {!isLast && (
                 <View

@@ -35,9 +35,13 @@ class AgentUpdate(BaseModel):
     target_platforms: list[str] | None = None
 
 
+class AgentGenerateRequest(BaseModel):
+    description: str = Field(min_length=10, max_length=1000)
+
+
 class AgentResponse(BaseModel):
     id: str
-    user_id: str
+    user_id: str | None
     name: str
     icon: str
     description: str | None

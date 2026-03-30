@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,18 @@ import {
   useWindowDimensions,
   RefreshControl,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
-import { FONTS, SPACING, RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, RADIUS, type ThemePalette } from '@/constants/theme';
 import { useAgents } from '@/hooks/useAgents';
 import { listMissions, type MissionResponse } from '@/services/missionsApi';
 import { AgentCard } from '@/components/AgentCard';
 import { MissionCard } from '@/components/MissionCard';
 import type { AgentResponse } from '@/services/agentsApi';
 
-function StatCard({ label, value, color, palette }: { label: string; value: number | string; color: string; palette: any }) {
+function StatCard({ label, value, color, palette }: { label: string; value: number | string; color: string; palette: ThemePalette }) {
   return (
     <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -28,7 +29,7 @@ function StatCard({ label, value, color, palette }: { label: string; value: numb
   );
 }
 
-function SectionHeader({ title, action, onAction, palette }: { title: string; action?: string; onAction?: () => void; palette: any }) {
+function SectionHeader({ title, action, onAction, palette }: { title: string; action?: string; onAction?: () => void; palette: ThemePalette }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={[styles.sectionTitle, { color: palette.text }]}>{title}</Text>
@@ -41,7 +42,33 @@ function SectionHeader({ title, action, onAction, palette }: { title: string; ac
   );
 }
 
-function CreateAgentCard({ onPress, palette }: { onPress: () => void; palette: any }) {
+function SkeletonCard({ palette }: { palette: ThemePalette }) {
+  const shimmer = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 0.9, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [shimmer]);
+  return (
+    <Animated.View
+      style={[
+        styles.skeletonCard,
+        { backgroundColor: palette.card, borderColor: palette.border, opacity: shimmer },
+      ]}
+    >
+      <View style={[styles.skeletonLine, { backgroundColor: palette.elevated, width: 32, height: 32, borderRadius: 8, marginBottom: 8 }]} />
+      <View style={[styles.skeletonLine, { backgroundColor: palette.elevated, width: '70%', height: 12, borderRadius: 4 }]} />
+      <View style={[styles.skeletonLine, { backgroundColor: palette.elevated, width: '50%', height: 10, borderRadius: 4, marginTop: 6 }]} />
+    </Animated.View>
+  );
+}
+
+function CreateAgentCard({ onPress, palette }: { onPress: () => void; palette: ThemePalette }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -69,7 +96,7 @@ function CreateAgentCard({ onPress, palette }: { onPress: () => void; palette: a
   );
 }
 
-function PresetAgentCard({ agent, onPress, palette }: { agent: AgentResponse; onPress: () => void; palette: any }) {
+function PresetAgentCard({ agent, onPress, palette }: { agent: AgentResponse; onPress: () => void; palette: ThemePalette }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -254,14 +281,21 @@ export default function AgentsScreen() {
         {!agentsLoading && agents.length === 0 && (
           <View style={[styles.emptyBox, { backgroundColor: palette.card, borderColor: palette.border }]}>
             <Text style={styles.emptyIcon}>🤖</Text>
-            <Text style={[styles.emptyTitle, { color: palette.text }]}>Nessun agente ancora</Text>
+            <Text style={[styles.emptyTitle, { color: palette.text }]}>Nessun agente creato</Text>
             <Text style={[styles.emptyDesc, { color: palette.textMuted }]}>
-              Crea il tuo primo agente o inizia da un preset
+              Nessun agente creato. Inizia con un preset!
             </Text>
           </View>
         )}
 
         <View style={[styles.agentGrid, { gap: SPACING.sm }]}>
+          {agentsLoading && agents.length === 0
+            ? Array.from({ length: numCols }).map((_, i) => (
+                <View key={`skel-${i}`} style={{ width: `${100 / numCols - 1}%` as any }}>
+                  <SkeletonCard palette={palette} />
+                </View>
+              ))
+            : null}
           {agents.map((agent) => (
             <View key={agent.id} style={{ width: `${100 / numCols - 1}%` as any }}>
               <AgentCard
@@ -516,4 +550,13 @@ const styles = StyleSheet.create({
   bottomPad: {
     height: SPACING.xl,
   },
+  // Skeleton loader
+  skeletonCard: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING.md,
+    minHeight: 140,
+    gap: SPACING.xs,
+  },
+  skeletonLine: {},
 });

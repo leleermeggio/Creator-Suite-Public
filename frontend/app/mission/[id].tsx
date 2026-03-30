@@ -194,6 +194,7 @@ export default function MissionScreen() {
   if (error || !mission) {
     return (
       <View style={[styles.center, { backgroundColor: palette.bg }]}>
+        <Text style={styles.errorEmoji}>⚠️</Text>
         <Text style={[styles.errorText, { color: palette.magenta }]}>
           {error ?? 'Missione non trovata'}
         </Text>
@@ -203,6 +204,7 @@ export default function MissionScreen() {
             styles.retryBtn,
             { borderColor: palette.cyan },
             pressed && { opacity: 0.7 },
+            Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
           ]}
         >
           <Text style={[styles.retryBtnText, { color: palette.cyan }]}>Riprova</Text>
@@ -356,7 +358,7 @@ export default function MissionScreen() {
         </View>
 
         {/* ── 4. Step Timeline ─────────────────────────────────────── */}
-        {totalSteps > 0 && (
+        {totalSteps > 0 ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: palette.text }]}>Pipeline</Text>
@@ -368,6 +370,16 @@ export default function MissionScreen() {
               steps={timelineSteps}
               currentIndex={mission.current_step_index}
             />
+          </View>
+        ) : (
+          <View style={[styles.emptySteps, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <Text style={styles.emptyStepsIcon}>📋</Text>
+            <Text style={[styles.emptyStepsTitle, { color: palette.textSecondary }]}>
+              Nessuno step configurato
+            </Text>
+            <Text style={[styles.emptyStepsDesc, { color: palette.textMuted }]}>
+              L'agente non ha step da eseguire.
+            </Text>
           </View>
         )}
 
@@ -663,6 +675,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: SPACING.sm,
   },
+  errorEmoji: {
+    fontSize: 40,
+  },
   errorText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 14,
@@ -937,6 +952,28 @@ const styles = StyleSheet.create({
   historyToggleText: {
     fontFamily: FONTS.bodySemiBold,
     fontSize: 13,
+  },
+
+  /* Empty steps state */
+  emptySteps: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  emptyStepsIcon: {
+    fontSize: 36,
+  },
+  emptyStepsTitle: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  emptyStepsDesc: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 12,
+    textAlign: 'center',
   },
 
   /* Summary card */
