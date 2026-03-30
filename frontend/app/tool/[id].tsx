@@ -51,6 +51,8 @@ export default function ToolScreen() {
 
   const [inputText, setInputText] = useState('');
   const [targetLang, setTargetLang] = useState('en');
+  const [ttsLang, setTtsLang] = useState('it');
+  const [showTtsLangPicker, setShowTtsLangPicker] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -212,9 +214,9 @@ export default function ToolScreen() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            project_id: projectId || 'temp',
+            ...(projectId ? { project_id: projectId } : {}),
             text: inputText,
-            language: targetLang || 'it',
+            language: ttsLang,
           }),
         });
         
@@ -456,6 +458,30 @@ export default function ToolScreen() {
           ))}
         </Animated.View>
 
+        {/* Language picker for TTS */}
+        {id === 'tts' && (
+          <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
+            <Text style={styles.fieldLabel}>LINGUA VOCE</Text>
+            <Pressable onPress={() => setShowTtsLangPicker(!showTtsLangPicker)} style={styles.langSelector}>
+              <Text style={styles.langSelectorText}>{LANGUAGES[ttsLang] || ttsLang}</Text>
+              <Text style={styles.langSelectorArrow}>{showTtsLangPicker ? '▲' : '▼'}</Text>
+            </Pressable>
+            {showTtsLangPicker && (
+              <ScrollView style={styles.langDropdown} nestedScrollEnabled>
+                {Object.entries(LANGUAGES).map(([code, name]) => (
+                  <Pressable
+                    key={code}
+                    onPress={() => { setTtsLang(code); setShowTtsLangPicker(false); }}
+                    style={[styles.langOption, ttsLang === code && styles.langOptionSelected]}
+                  >
+                    <Text style={[styles.langOptionText, ttsLang === code && { color: COLORS.neonCyan }]}>{name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </Animated.View>
+        )}
+
         {/* Language picker for translate */}
         {id === 'translate' && (
           <Animated.View style={{ opacity: fadeAnim, marginBottom: SPACING.lg }}>
@@ -694,11 +720,27 @@ export default function ToolScreen() {
               <View style={styles.sectionLine} />
             </View>
             <GlowCard gradient={tool.gradient} glowIntensity={0.12}>
-              <Text style={styles.resultText}>✅ Video processato!</Text>
+              {id === 'tts' ? (
+                <Text style={styles.resultText}>✅ Audio generato!</Text>
+              ) : id === 'convert' ? (
+                <Text style={styles.resultText}>✅ Conversione completata!</Text>
+              ) : id === 'download' ? (
+                <Text style={styles.resultText}>✅ Download completato!</Text>
+              ) : (
+                <Text style={styles.resultText}>✅ Video processato!</Text>
+              )}
               {jumpcutResult.stats.original && (
                 <Text style={[styles.resultText, { fontSize: 13, marginTop: 8 }]}>
                   Durata originale: {jumpcutResult.stats.original}s{' '}→ {jumpcutResult.stats.final}s{' '}({jumpcutResult.stats.removed}% rimosso)
                 </Text>
+              )}
+              {/* Audio player for TTS and audio conversions */}
+              {Platform.OS === 'web' && (id === 'tts' || jumpcutResult.filename.match(/\.(mp3|wav|ogg|m4a|aac)$/i)) && (
+                React.createElement('audio', {
+                  controls: true,
+                  src: jumpcutResult.url,
+                  style: { width: '100%', marginTop: 12, borderRadius: 8, accentColor: '#E040FB', display: 'block' },
+                })
               )}
             </GlowCard>
             <Pressable onPress={() => {
@@ -710,7 +752,9 @@ export default function ToolScreen() {
               }
             }} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginTop: 12 }]}>
               <LinearGradient colors={tool.gradient as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.processBtn}>
-                <Text style={styles.processBtnText}>⬇️ Scarica video</Text>
+                <Text style={styles.processBtnText}>
+                  {id === 'tts' ? '⬇️ Scarica MP3' : id === 'convert' ? '⬇️ Scarica file' : id === 'download' ? '⬇️ Scarica' : '⬇️ Scarica video'}
+                </Text>
               </LinearGradient>
             </Pressable>
           </View>
@@ -762,6 +806,7 @@ const styles = StyleSheet.create({
   processingHint: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.sm },
   errorBox: { marginTop: SPACING.lg, padding: SPACING.md, borderRadius: RADIUS.md, backgroundColor: COLORS.neonPink + '15', borderWidth: 1, borderColor: COLORS.neonPink + '44' },
   errorText: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.neonPink },
+  audioPlayerContainer: { marginTop: 4, width: '100%' },
   resultSection: { marginTop: SPACING.xxl, gap: SPACING.md },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
   sectionTitle: { fontFamily: FONTS.bodySemiBold, fontSize: 11, color: COLORS.textMuted, letterSpacing: 1.5 },

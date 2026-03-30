@@ -194,7 +194,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 STABLE_HORDE_URL = "https://aihorde.net/api/v2"
-NANOBANANA_URL = "https://www.nananobanana.com/api/v1"
+NANOBANANA_URL = "https://api.nanobananaapi.ai/api/v1/nanobanana"
 
 
 # ── Unified OpenAI-compatible helper ─────────────────────────────────────────
@@ -557,50 +557,81 @@ async def _nanobanana_generate(
     api_key: str,
     model: str = "nano-banana",
 ) -> str:
-    """Call NanoBanana API for image generation. Returns base64 image."""
-    # Determine aspect ratio based on dimensions
-    w, h = width, height
-    ratio = w / h
-    if 0.9 <= ratio <= 1.1:
-        aspect_ratio = "1:1"
-    elif ratio > 1.3:
-        aspect_ratio = "16:9"
-    elif ratio < 0.8:
-        aspect_ratio = "9:16"
-    else:
-        aspect_ratio = "default"
+    """Call nanobananaapi.ai for image generation. Returns base64 image."""
+    import asyncio
 
-    payload = {
-        "prompt": prompt,
-        "selectedModel": model,
-        "aspectRatio": aspect_ratio,
-        "mode": "sync",
-    }
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
+    # Step 1: Submit generation task
+    payload = {
+        "prompt": prompt,
+        "type": "TEXTTOIAMGE",
+        "numImages": 1,
+    }
     resp = await client.post(
         f"{NANOBANANA_URL}/generate",
         json=payload,
         headers=headers,
-        timeout=90.0,
+        timeout=30.0,
     )
     resp.raise_for_status()
     data = resp.json()
 
-    # Get image URL from response
-    output_urls = data.get("data", {}).get("outputImageUrls", [])
-    if not output_urls:
-        raise ValueError("NanoBanana returned no image URLs")
+    if data.get("code") not in (200, None) and data.get("code") != 0:
+        raise ValueError(f"NanoBanana error: {data.get('msg', data)}")
 
-    image_url = output_urls[0]
+    task_id = data.get("data", {}).get("taskId")
+    if not task_id:
+        raise ValueError(f"NanoBanana returned no taskId: {data}")
 
-    # Download image and convert to base64
+    # Step 2: Poll for result (max 120s)
+    image_url = None
+    last_result: dict = {}
+    for attempt in range(40):
+        await asyncio.sleep(3)
+        poll = await client.get(
+            f"{NANOBANANA_URL}/record-info",
+            params={"taskId": task_id},
+            headers=headers,
+            timeout=15.0,
+        )
+        poll.raise_for_status()
+        last_result = poll.json()
+        task_data = last_result.get("data", last_result)
+        if isinstance(task_data, list):
+            task_data = task_data[0] if task_data else {}
+        success_flag = task_data.get("successFlag")
+        error_code = task_data.get("errorCode")
+        logger.info("NanoBanana poll #%d taskId=%s successFlag=%r errorCode=%r",
+                    attempt, task_id, success_flag, error_code)
+
+        if success_flag == 1:
+            response = task_data.get("response") or {}
+            url = response.get("resultImageUrl") or response.get("originImageUrl")
+            if url:
+                image_url = url
+                break
+            raise ValueError(f"NanoBanana success but no resultImageUrl in: {task_data}")
+        elif error_code is not None:
+            raise ValueError(
+                f"NanoBanana failed: errorCode={error_code} "
+                f"errorMessage={task_data.get('errorMessage')}"
+            )
+        # successFlag=0 or None = still generating, keep polling
+    else:
+        raise ValueError(
+            f"NanoBanana timed out after 120s. Last poll response: {str(last_result)[:400]}"
+        )
+
+    if not image_url:
+        raise ValueError("NanoBanana: no image URL found after polling")
+
+    # Step 3: Download image and convert to base64
     img_resp = await client.get(image_url, timeout=30.0)
     img_resp.raise_for_status()
-
     image_b64 = base64.b64encode(img_resp.content).decode("utf-8")
     return image_b64
 
@@ -615,9 +646,9 @@ async def _stable_horde_generate(
     model: str = "DreamShaper",
 ) -> str:
     """Submit and poll Stable Horde for image generation. Returns base64 PNG image."""
-    # Stable Horde requires multiples of 64, cap at 768 for speed
-    w = max(512, min(768, (width // 64) * 64))
-    h = max(512, min(768, (height // 64) * 64))
+    # Stable Horde anonymous users: max 576×576 (requires Kudos above that)
+    w = max(256, min(512, (width // 64) * 64))
+    h = max(256, min(512, (height // 64) * 64))
 
     quality_suffix = (
         ", highly detailed, masterpiece, best quality, sharp focus, professional, "
@@ -723,10 +754,11 @@ async def generate_image(
         except HTTPException:
             raise
         except httpx.HTTPStatusError as exc:
-            logger.error("❌ %s HTTP error %s: %s", provider, exc.response.status_code, exc.response.text[:300])
+            raw = exc.response.text[:500]
+            logger.error("❌ %s HTTP %s: %s", provider, exc.response.status_code, raw)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"{provider} service unavailable. Please try again.",
+                detail=f"{provider} HTTP {exc.response.status_code}: {raw}",
             ) from exc
         except Exception as exc:
             logger.error("❌ %s image generation failed: %s", provider, exc)
