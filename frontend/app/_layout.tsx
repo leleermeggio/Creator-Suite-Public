@@ -15,6 +15,12 @@ import {
 } from '@expo-google-fonts/inter-tight';
 import { COLORS } from '@/constants/theme';
 import { AuthProvider, useAuthContext } from '@/context/AuthContext';
+import { ThemeProvider, useThemeContext } from '@/context/ThemeContext';
+
+function ThemedStatusBar() {
+  const { isDark } = useThemeContext();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, loading } = useAuthContext();
@@ -49,27 +55,29 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <AuthGate>
-        <StatusBar style="light" />
-        {Platform.OS === 'web' && <WebGlobalStyles />}
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: COLORS.bg },
-            animation: 'fade',
-          }}
-        >
-          <Stack.Screen name="login" options={{ animation: 'fade' }} />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="tool/[id]" />
-          <Stack.Screen name="project/[id]" />
-          <Stack.Screen name="new-project/index" />
-          <Stack.Screen name="new-project/ai-setup" />
-          <Stack.Screen name="new-project/customize" />
-        </Stack>
-      </AuthGate>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthGate>
+          <ThemedStatusBar />
+          {Platform.OS === 'web' && <WebGlobalStyles />}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: COLORS.bg },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="login" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="tool/[id]" />
+            <Stack.Screen name="project/[id]" />
+            <Stack.Screen name="new-project/index" />
+            <Stack.Screen name="new-project/ai-setup" />
+            <Stack.Screen name="new-project/customize" />
+          </Stack>
+        </AuthGate>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,0 +1,42 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  listAgents,
+  listPresetAgents,
+  deleteAgent as apiDeleteAgent,
+  type AgentResponse,
+} from '@/services/agentsApi';
+
+export function useAgents() {
+  const [agents, setAgents] = useState<AgentResponse[]>([]);
+  const [presets, setPresets] = useState<AgentResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [all, presetList] = await Promise.all([listAgents(), listPresetAgents()]);
+      setAgents(all.filter((a) => !a.is_preset));
+      setPresets(presetList);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load agents');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteAgent = useCallback(
+    async (id: string) => {
+      await apiDeleteAgent(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { agents, presets, loading, error, refresh, deleteAgent };
+}

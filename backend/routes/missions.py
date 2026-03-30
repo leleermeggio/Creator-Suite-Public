@@ -23,6 +23,61 @@ from backend.schemas.mission import (
 router = APIRouter(prefix="/missions", tags=["missions"])
 
 
+@router.post("/{mission_id}/start", response_model=MissionResponse)
+async def start_mission(
+    mission_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from backend.services.mission_service import start_mission as svc_start
+
+    try:
+        return await svc_start(db, mission_id, user.id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+
+
+@router.post(
+    "/{mission_id}/steps/{step_index}/execute", response_model=MissionResponse
+)
+async def execute_step(
+    mission_id: str,
+    step_index: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from backend.services.mission_service import execute_step as svc_execute
+
+    try:
+        return await svc_execute(db, mission_id, step_index, user.id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+
+
+@router.put(
+    "/{mission_id}/steps/{step_index}/params", response_model=MissionResponse
+)
+async def update_step_params(
+    mission_id: str,
+    step_index: int,
+    body: StepParamsUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from backend.services.mission_service import update_step_params as svc_params
+
+    try:
+        return await svc_params(db, mission_id, step_index, user.id, body.parameters)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+
+
 @router.post("/", response_model=MissionResponse, status_code=status.HTTP_201_CREATED)
 async def create_mission(
     body: MissionCreate,

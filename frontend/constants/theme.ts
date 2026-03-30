@@ -110,3 +110,56 @@ export const getColumns = () => {
   if (isLarge) return 3;
   return 2;
 };
+
+// ── Spec-aligned theme palettes (section 13) ──────────────────────────────────
+
+export interface ThemePalette {
+  bg: string;
+  bgSidebar: string;
+  card: string;
+  elevated: string;
+  text: string;
+  textSecondary: string;
+  textMuted: string;
+  cyan: string;
+  magenta: string;
+  violet: string;
+  border: string;
+  borderActive: string;
+  sidebarActive: string;
+  grain: boolean;
+}
+
+export const DARK_PALETTE: ThemePalette = {
+  bg: '#04040A',
+  bgSidebar: '#080812',
+  card: '#0A0A16',
+  elevated: '#10102A',
+  text: '#EEEEFF',
+  textSecondary: '#7777AA',
+  textMuted: '#444466',
+  cyan: '#00FFD0',
+  magenta: '#FF00AA',
+  violet: '#9944FF',
+  border: 'rgba(255,255,255,0.06)',
+  borderActive: 'rgba(0,255,208,0.25)',
+  sidebarActive: 'rgba(0,255,208,0.08)',
+  grain: true,
+};
+
+export const LIGHT_PALETTE: ThemePalette = {
+  bg: '#F4F4F8',
+  bgSidebar: '#FFFFFF',
+  card: '#FFFFFF',
+  elevated: '#F0F0F6',
+  text: '#111122',
+  textSecondary: '#555577',
+  textMuted: '#9999AA',
+  cyan: '#00B896',
+  magenta: '#CC0088',
+  violet: '#7722DD',
+  border: 'rgba(0,0,0,0.08)',
+  borderActive: 'rgba(0,184,150,0.3)',
+  sidebarActive: 'rgba(0,184,150,0.08)',
+  grain: false,
+};

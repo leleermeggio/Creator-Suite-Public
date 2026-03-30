@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +11,32 @@ from backend.models.user import User
 from backend.schemas.agent import AgentCreate, AgentResponse, AgentUpdate
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+
+class AgentGenerateRequest(BaseModel):
+    description: str = Field(min_length=10, max_length=1000)
+
+
+@router.post("/generate", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
+async def generate_agent(
+    body: AgentGenerateRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from backend.services.agent_service import generate_agent_from_description
+
+    try:
+        agent = await generate_agent_from_description(db, user.id, body.description)
+        return agent
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Agent generation failed: {exc}",
+        )
 
 
 @router.post("/", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)

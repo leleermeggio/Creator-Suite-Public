@@ -963,3 +963,67 @@ async def transcribe_audio(
             shutil.rmtree(tmp_dir, ignore_errors=True)
         except Exception:
             pass
+
+
+# ── Analyze media endpoint ────────────────────────────────────────────────────
+
+
+class AnalyzeMediaRequest(BaseModel):
+    transcript: str | None = None
+
+
+class AnalyzeMediaResponse(BaseModel):
+    metadata: dict
+    insights: list[dict]
+    transcript_analyzed: bool
+
+
+@router.post("/analyze-media", response_model=AnalyzeMediaResponse)
+async def analyze_media(
+    file: UploadFile | None = File(None),
+    url: str | None = Query(None, description="URL to download media from"),
+    transcript: str | None = Query(None, description="Optional transcript text for AI insights"),
+    _user: User = Depends(get_current_user),
+) -> AnalyzeMediaResponse:
+    """Analyze a media file: FFmpeg probe + rule-based + optional Gemini transcript insights."""
+    from backend.services.media_analysis_service import analyze_media as svc_analyze
+
+    if not file and not url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fornisci un file o un URL.",
+        )
+
+    tmp_dir = tempfile.mkdtemp(prefix="analyze_")
+    try:
+        if url:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+            ext = os.path.splitext(url.split("?")[0])[1] or ".mp4"
+            input_path = os.path.join(tmp_dir, f"input{ext}")
+            with open(input_path, "wb") as f:
+                f.write(resp.content)
+        else:
+            ext = os.path.splitext(file.filename or "media.mp4")[1] or ".mp4"
+            input_path = os.path.join(tmp_dir, f"input{ext}")
+            with open(input_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+
+        result = await asyncio.to_thread(svc_analyze, input_path, transcript)
+
+        return AnalyzeMediaResponse(
+            metadata=result["metadata"],
+            insights=result["insights"],
+            transcript_analyzed=result["transcript_analyzed"],
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("analyze-media error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis error: {exc}",
+        ) from exc
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
