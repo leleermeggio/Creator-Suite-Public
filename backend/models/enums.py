@@ -22,3 +22,17 @@ class JobType(str, enum.Enum):
     CONVERT = "convert"
     TTS = "tts"
     TRANSLATE = "translate"
+
+
+class ControlMode(str, enum.Enum):
+    REGISTA = "REGISTA"
+    COPILOTA = "COPILOTA"
+    AUTOPILOTA = "AUTOPILOTA"
+
+
+class MissionStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"

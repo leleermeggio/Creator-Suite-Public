@@ -28,6 +28,8 @@ from backend.routes.teams import router as teams_router
 from backend.routes.thumbnails import router as thumbnails_router
 from backend.routes.tools import router as tools_router
 from backend.routes.watermark import router as watermark_router
+from backend.routes.agents import router as agents_router
+from backend.routes.missions import router as missions_router
 
 
 def _get_db_dependency(session_factory: async_sessionmaker[AsyncSession]):
@@ -100,5 +102,7 @@ def create_app(
     app.include_router(analytics_router)
     app.include_router(subscriptions_router)
     app.include_router(tools_router, prefix="/tools")
+    app.include_router(agents_router)
+    app.include_router(missions_router)
 
     return app

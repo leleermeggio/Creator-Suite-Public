@@ -1,7 +1,9 @@
+from backend.models.agent import Agent
 from backend.models.analytics_event import AnalyticsEvent
 from backend.models.caption import Caption
 from backend.models.comment import Comment
-from backend.models.enums import JobStatus, JobType
+from backend.models.enums import ControlMode, JobStatus, JobType, MissionStatus
+from backend.models.mission import Mission
 from backend.models.export import Export, ExportFormat, ExportStatus
 from backend.models.graphics_overlay import GraphicsOverlay, OverlayType
 from backend.models.job import Job
@@ -47,4 +49,8 @@ __all__ = [
     "UsageCounter",
     "PlanTier",
     "SubscriptionStatus",
+    "Agent",
+    "Mission",
+    "ControlMode",
+    "MissionStatus",
 ]
