@@ -26,11 +26,82 @@
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Bash(DROP TABLE*)",
-      "Bash(curl * | bash)"
+      "Bash(curl * | bash)",
+      "Bash(chmod 777*)",
+      "Bash(dd if=*)",
+      "Bash(mkfs.*)",
+      "Bash(format c:*)"
     ]
   },
   "model": "claude-sonnet-4-6",
   "additionalDirectories": [
     "//la-base/Spazio Ai/windsurf-project-2"
-  ]
+  ],
+  "env": {
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "MAX_THINKING_TOKENS": "10000",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \".claude/hooks/session-init.sh\" 2>/dev/null || true",
+            "timeout": 8000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \".claude/hooks/block-destructive-commands.sh\" 2>/dev/null || true",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \".claude/hooks/post-tool/auto-format.sh\" 2>/dev/null || true",
+            "timeout": 8000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \".claude/hooks/quality-gate.sh\" 2>/dev/null || true",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \".claude/hooks/precompact/knowledge-sync.sh\" 2>/dev/null || true",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
 }

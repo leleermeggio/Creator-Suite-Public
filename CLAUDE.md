@@ -132,3 +132,39 @@ All user-facing strings in Italian. Auth via `ALLOWED_USERS` env var.
 - `async/await` — no raw `.then()` chains
 - All user-facing strings in Italian
 - Cosmic neon theme via `constants/theme.ts` (COLORS, TYPO, FONTS, RADIUS, SPACING)
+
+---
+
+## Agentic Operation Rules (R.D.P.A.S)
+
+- **R**educe context — use `/clear` between unrelated tasks; load only relevant files
+- **D**elegate to agents — use `Task` tool to spawn subagents for independent work
+- **P**arallel dispatch — launch multiple agents in a single message when tasks are independent
+- **A**utomate via hooks — hooks handle formatting, safety checks, and snapshots automatically
+- **S**elf-improve — update this CLAUDE.md when you discover better patterns
+
+### Agent Dispatch Patterns
+
+| Intent | Agents to dispatch in parallel |
+|--------|-------------------------------|
+| build/feature | frontend-developer + backend-architect + code-reviewer |
+| fix/debug | systematic-debugger + code-reviewer |
+| security | security-auditor + code-reviewer |
+| research | Explore (codebase) + docs agent |
+| test | test-generator + code-reviewer |
+
+### Context Management
+
+- 75%+ context used → run `/clear` and summarize state before continuing
+- PreCompact hook auto-snapshots git state to `.claude/shared/snapshots/` before compaction
+- Each agent gets a clean, focused context — never pass the full conversation to subagents
+
+### Hooks Active in This Project
+
+| Hook | Trigger | What it does |
+|------|---------|--------------|
+| `session-init.sh` | Session start | Detects stack, checks backend health |
+| `block-destructive-commands.sh` | Before any Bash | Blocks `rm -rf /`, `dd if=`, `chmod 777`, etc. |
+| `auto-format.sh` | After Edit/Write | Runs ruff (Python) or prettier (TS/JS) automatically |
+| `quality-gate.sh` | End of each turn | Checks Python syntax + TS compilation errors |
+| `knowledge-sync.sh` | Before compaction | Saves git snapshot to `.claude/shared/snapshots/` |
