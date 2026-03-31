@@ -127,7 +127,7 @@ async def extract_audio(
     return {"job_id": job.id, "status": "queued"}
 
 
-@router.post("/tts")
+@router.post("/tts", status_code=status.HTTP_202_ACCEPTED)
 async def create_tts(
     body: TTSRequest,
     user: User = Depends(get_current_user),
