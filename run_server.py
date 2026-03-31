@@ -1,9 +1,6 @@
 """Local dev server launcher for Creator Suite API."""
 import os
 
-# Ensure backend/.env is loaded
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./creator_suite_dev.db")
-
 if __name__ == "__main__":
     import uvicorn
     from backend.main import create_app
