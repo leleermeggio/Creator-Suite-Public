@@ -17,9 +17,11 @@ import { GlowCard } from '@/components/GlowCard';
 import { GradientText } from '@/components/GradientText';
 import { useProjects } from '@/hooks/useProjects';
 import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function ProjectsScreen() {
   const router = useRouter();
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const { projects, loading, deleteProject, archiveProject, unarchiveProject } =
     useProjects();
@@ -264,7 +266,7 @@ export default function ProjectsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <CosmicBackground />
       <FlatList
         data={activeProjects}
@@ -315,7 +317,6 @@ export default function ProjectsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   listContent: {
     paddingTop: Platform.select({ web: 40, default: 60 }),

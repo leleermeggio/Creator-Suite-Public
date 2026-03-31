@@ -22,6 +22,30 @@ function ThemedStatusBar() {
   return <StatusBar style={isDark ? 'light' : 'dark'} />;
 }
 
+function ThemedStack() {
+  const { palette } = useThemeContext();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: palette.bg },
+        animation: 'fade',
+      }}
+    >
+      <Stack.Screen name="login" options={{ animation: 'fade' }} />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="tool/[id]" />
+      <Stack.Screen name="project/[id]" />
+      <Stack.Screen name="new-project/index" />
+      <Stack.Screen name="new-project/ai-setup" />
+      <Stack.Screen name="new-project/customize" />
+      <Stack.Screen name="agent/[id]" />
+      <Stack.Screen name="agent/new" />
+      <Stack.Screen name="mission/[id]" />
+    </Stack>
+  );
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, loading } = useAuthContext();
   const router = useRouter();
@@ -60,24 +84,7 @@ export default function RootLayout() {
         <AuthGate>
           <ThemedStatusBar />
           {Platform.OS === 'web' && <WebGlobalStyles />}
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: COLORS.bg },
-              animation: 'fade',
-            }}
-          >
-            <Stack.Screen name="login" options={{ animation: 'fade' }} />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="tool/[id]" />
-            <Stack.Screen name="project/[id]" />
-            <Stack.Screen name="new-project/index" />
-            <Stack.Screen name="new-project/ai-setup" />
-            <Stack.Screen name="new-project/customize" />
-            <Stack.Screen name="agent/[id]" />
-            <Stack.Screen name="agent/new" />
-            <Stack.Screen name="mission/[id]" />
-          </Stack>
+          <ThemedStack />
         </AuthGate>
       </AuthProvider>
     </ThemeProvider>
@@ -85,6 +92,7 @@ export default function RootLayout() {
 }
 
 function WebGlobalStyles() {
+  const { palette } = useThemeContext();
   if (Platform.OS !== 'web') return null;
 
   return (
@@ -94,7 +102,7 @@ function WebGlobalStyles() {
           * { box-sizing: border-box; margin: 0; padding: 0; }
           html, body, #root {
             height: 100%;
-            background: ${COLORS.bg};
+            background: ${palette.bg};
             overflow-x: hidden;
           }
           body {

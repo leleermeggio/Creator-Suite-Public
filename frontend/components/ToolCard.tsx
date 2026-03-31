@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlowCard } from './GlowCard';
 import { COLORS, SPACING, RADIUS, TYPO, FONTS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Tool } from '@/constants/tools';
 
 interface ToolCardProps {
@@ -12,6 +13,7 @@ interface ToolCardProps {
 }
 
 export function ToolCard({ tool, onPress, index }: ToolCardProps) {
+  const { palette } = useTheme();
   return (
     <GlowCard
       gradient={tool.gradient}
@@ -42,8 +44,8 @@ export function ToolCard({ tool, onPress, index }: ToolCardProps) {
         </LinearGradient>
       </View>
 
-      <Text style={styles.name}>{tool.name}</Text>
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[styles.name, { color: palette.text }]}>{tool.name}</Text>
+      <Text style={[styles.description, { color: palette.textSecondary }]} numberOfLines={2}>
         {tool.description}
       </Text>
 

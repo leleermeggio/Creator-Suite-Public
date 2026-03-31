@@ -14,9 +14,11 @@ import { GradientText } from '@/components/GradientText';
 import { ToolCard } from '@/components/ToolCard';
 import { TOOLS } from '@/constants/tools';
 import { COLORS, SPACING, TYPO } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function QuickToolsScreen() {
   const router = useRouter();
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -46,7 +48,7 @@ export default function QuickToolsScreen() {
     (width - horizontalPad * 2 - gap * (columns - 1)) / columns;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <CosmicBackground />
       <ScrollView
         style={styles.scroll}
@@ -113,7 +115,6 @@ export default function QuickToolsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,

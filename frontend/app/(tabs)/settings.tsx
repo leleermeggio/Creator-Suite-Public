@@ -27,6 +27,7 @@ import {
   FONTS,
   RADIUS,
 } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SettingRowProps {
   icon: string;
@@ -49,6 +50,7 @@ function SettingRow({
   accentColor = COLORS.neonCyan,
   children,
 }: SettingRowProps) {
+  const { palette } = useTheme();
   const Wrapper = onPress ? Pressable : View;
   return (
     <Wrapper
@@ -60,9 +62,9 @@ function SettingRow({
     >
       <Text style={styles.settingIcon}>{icon}</Text>
       <View style={styles.settingTextCol}>
-        <Text style={styles.settingLabel}>{label}</Text>
+        <Text style={[styles.settingLabel, { color: palette.text }]}>{label}</Text>
         {sublabel && (
-          <Text style={styles.settingSublabel}>{sublabel}</Text>
+          <Text style={[styles.settingSublabel, { color: palette.textMuted }]}>{sublabel}</Text>
         )}
         {children}
       </View>
@@ -71,18 +73,19 @@ function SettingRow({
           value={value}
           onValueChange={onToggle}
           trackColor={{
-            false: COLORS.bgElevated,
+            false: palette.elevated,
             true: accentColor + '66',
           }}
-          thumbColor={value ? accentColor : COLORS.textMuted}
+          thumbColor={value ? accentColor : palette.textMuted}
         />
       )}
-      {onPress && <Text style={styles.settingChevron}>›</Text>}
+      {onPress && <Text style={[styles.settingChevron, { color: palette.textMuted }]}>›</Text>}
     </Wrapper>
   );
 }
 
 export default function SettingsScreen() {
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const { settings, update } = useSettings();
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -137,7 +140,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <CosmicBackground />
       <ScrollView
         style={styles.scroll}
@@ -156,22 +159,22 @@ export default function SettingsScreen() {
           <GradientText gradient={COLORS.gradAurora} style={TYPO.h1}>
             Impostazioni
           </GradientText>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
             Personalizza la tua esperienza
           </Text>
         </Animated.View>
 
         {/* AI Provider section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-          <Text style={styles.sectionLabel}>PROVIDER AI</Text>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>PROVIDER AI</Text>
           <GlowCard gradient={COLORS.gradCyan} glowIntensity={0.1} borderWidth={1}>
             <View style={styles.settingsGroup}>
               {/* Provider selector */}
               <View style={styles.settingRow}>
                 <Text style={styles.settingIcon}>🤖</Text>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingLabel}>Provider</Text>
-                  <Text style={styles.settingSublabel}>
+                  <Text style={[styles.settingLabel, { color: palette.text }]}>Provider</Text>
+                  <Text style={[styles.settingSublabel, { color: palette.textMuted }]}>
                     {selectedProvider.description}
                   </Text>
                   <View style={styles.providerCards}>
@@ -189,11 +192,11 @@ export default function SettingsScreen() {
                         >
                           <Text style={[
                             styles.providerName,
-                            isActive && styles.providerNameActive,
+                            { color: isActive ? palette.cyan : palette.textSecondary },
                           ]}>
                             {p.name}
                           </Text>
-                          <Text style={styles.providerDesc}>
+                          <Text style={[styles.providerDesc, { color: palette.textMuted }]}>
                             {p.requiresKey ? 'Chiave richiesta' : 'Nessuna chiave'}
                           </Text>
                         </Pressable>
@@ -210,7 +213,7 @@ export default function SettingsScreen() {
                   <View style={styles.settingRow}>
                     <Text style={styles.settingIcon}>🔑</Text>
                     <View style={styles.settingTextCol}>
-                      <Text style={styles.settingLabel}>
+                      <Text style={[styles.settingLabel, { color: palette.text }]}>
                         {selectedProvider.name} API Key
                       </Text>
                       <Pressable onPress={openSignup} style={Platform.OS === 'web' ? { cursor: 'pointer' as any } : undefined}>
@@ -219,7 +222,7 @@ export default function SettingsScreen() {
                         </Text>
                       </Pressable>
                       <TextInput
-                        style={styles.apiKeyInput}
+                        style={[styles.apiKeyInput, { color: palette.text, borderColor: palette.border, backgroundColor: palette.elevated }]}
                         value={apiKeyInput}
                         onChangeText={setApiKeyInput}
                         onBlur={handleSaveApiKey}
@@ -228,7 +231,7 @@ export default function SettingsScreen() {
                           : settings.aiProvider === 'groq' ? 'gsk_...'
                           : 'sk-or-...'
                         }
-                        placeholderTextColor={COLORS.textMuted}
+                        placeholderTextColor={palette.textMuted}
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -247,8 +250,8 @@ export default function SettingsScreen() {
               <View style={styles.settingRow}>
                 <Text style={styles.settingIcon}>🧠</Text>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingLabel}>Modello</Text>
-                  <Text style={styles.settingSublabel}>{settings.aiModel}</Text>
+                  <Text style={[styles.settingLabel, { color: palette.text }]}>Modello</Text>
+                  <Text style={[styles.settingSublabel, { color: palette.textMuted }]}>{settings.aiModel}</Text>
                   <View style={styles.modelChips}>
                     {selectedProvider.models.map(m => (
                       <Pressable
@@ -262,7 +265,7 @@ export default function SettingsScreen() {
                       >
                         <Text style={[
                           styles.modelChipText,
-                          settings.aiModel === m && styles.modelChipTextActive,
+                          { color: settings.aiModel === m ? palette.cyan : palette.textMuted },
                         ]}>
                           {m.replace('gemini-', '').replace('meta-llama/', '').replace('mistralai/', '').replace('google/', '').replace(':free', '')}
                         </Text>
@@ -277,14 +280,14 @@ export default function SettingsScreen() {
 
         {/* Image Generation section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-          <Text style={styles.sectionLabel}>GENERAZIONE IMMAGINI</Text>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>GENERAZIONE IMMAGINI</Text>
           <GlowCard gradient={COLORS.gradMagenta} glowIntensity={0.1} borderWidth={1}>
             <View style={styles.settingsGroup}>
               <View style={styles.settingRow}>
                 <Text style={styles.settingIcon}>🍌</Text>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingLabel}>NanoBanana API Key</Text>
-                  <Text style={styles.settingSublabel}>
+                  <Text style={[styles.settingLabel, { color: palette.text }]}>NanoBanana API Key</Text>
+                  <Text style={[styles.settingSublabel, { color: palette.textMuted }]}>
                     Gemini-powered image generation
                   </Text>
                   <Pressable 
@@ -303,11 +306,11 @@ export default function SettingsScreen() {
                     </Text>
                   </Pressable>
                   <TextInput
-                    style={styles.apiKeyInput}
+                    style={[styles.apiKeyInput, { color: palette.text, borderColor: palette.border, backgroundColor: palette.elevated }]}
                     value={settings.nanobananaApiKey}
                     onChangeText={(value) => update({ nanobananaApiKey: value })}
                     placeholder="nb_..."
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholderTextColor={palette.textMuted}
                     secureTextEntry
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -323,7 +326,7 @@ export default function SettingsScreen() {
 
         {/* General section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-          <Text style={styles.sectionLabel}>GENERALI</Text>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>GENERALI</Text>
           <GlowCard
             gradient={COLORS.gradViolet}
             glowIntensity={0.1}
@@ -378,7 +381,7 @@ export default function SettingsScreen() {
 
         {/* Info section */}
         <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
-          <Text style={styles.sectionLabel}>INFO</Text>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>INFO</Text>
           <GlowCard
             gradient={COLORS.gradMagenta}
             glowIntensity={0.1}
@@ -409,7 +412,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,
@@ -467,7 +469,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(128,128,128,0.15)',
     marginLeft: 44,
   },
   providerCards: {
@@ -481,8 +483,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(128,128,128,0.2)',
+    backgroundColor: 'rgba(128,128,128,0.05)',
     minWidth: 120,
   },
   providerCardActive: {
@@ -539,7 +541,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(128,128,128,0.2)',
   },
   modelChipActive: {
     borderColor: COLORS.neonCyan,

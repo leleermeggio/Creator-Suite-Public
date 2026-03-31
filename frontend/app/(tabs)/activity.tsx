@@ -16,6 +16,7 @@ import { GradientText } from '@/components/GradientText';
 import { useJobs } from '@/hooks/useJobs';
 import { TOOLS } from '@/constants/tools';
 import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 function getToolInfo(toolId: string) {
   return TOOLS.find((t) => t.id === toolId);
@@ -58,6 +59,7 @@ const STATUS_CONFIG = {
 
 export default function ActivityScreen() {
   const router = useRouter();
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const { jobs, loading } = useJobs();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -136,7 +138,7 @@ export default function ActivityScreen() {
   const isEmpty = jobs.length === 0 && !loading;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       <CosmicBackground />
       <ScrollView
         style={styles.scroll}
@@ -201,7 +203,6 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,

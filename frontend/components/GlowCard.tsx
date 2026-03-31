@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface GlowCardProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ export function GlowCard({
   borderWidth = 1.5,
 }: GlowCardProps) {
   const [hovered, setHovered] = useState(false);
+  const { palette } = useTheme();
 
   const content = (
     <View style={[styles.outer, style]}>
@@ -50,6 +52,7 @@ export function GlowCard({
             {
               margin: borderWidth,
               borderRadius: RADIUS.lg - borderWidth,
+              backgroundColor: palette.card,
             },
           ]}
         >

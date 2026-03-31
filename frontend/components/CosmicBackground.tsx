@@ -2,11 +2,23 @@ import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Full-screen cosmic background with layered gradient orbs.
  */
 export function CosmicBackground() {
+  const { isDark, palette } = useTheme();
+
+  if (!isDark) {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: palette.bg }]}
+        pointerEvents="none"
+      />
+    );
+  }
+
   return (
     <View style={styles.container} pointerEvents="none">
       {/* Base dark */}
