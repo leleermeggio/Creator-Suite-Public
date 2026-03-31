@@ -1,13 +1,21 @@
 # backend/services/thumbnail_templates/split.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
 
-PANEL_W = 550     # right text panel width
+PANEL_W = 550  # right text panel width
 LEFT_W = W - PANEL_W
+
 
 class SplitTemplate(BaseThumbnailTemplate):
     """Photo left on dark panel, text right on very dark panel."""
@@ -50,8 +58,7 @@ class SplitTemplate(BaseThumbnailTemplate):
         for i, line in enumerate(lines):
             y = start_y + i * line_h
             self.draw_text_with_stroke(
-                draw, line, (LEFT_W + 28, y), font,
-                fill=(255, 255, 255), stroke_width=3
+                draw, line, (LEFT_W + 28, y), font, fill=(255, 255, 255), stroke_width=3
             )
 
         # Accent underline

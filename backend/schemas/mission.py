@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.models.enums import ControlMode, MissionStatus
+from backend.models.enums import ControlMode
 
 
 class StepResult(BaseModel):

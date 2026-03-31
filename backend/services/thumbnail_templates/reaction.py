@@ -1,13 +1,20 @@
 # backend/services/thumbnail_templates/reaction.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, _load_font,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
 
 FACE_W = int(W * 0.65)
 TEXT_X = FACE_W + 20
+
 
 class ReactionTemplate(BaseThumbnailTemplate):
     """Large face/subject 65% left, short punchy title on the right."""
@@ -32,8 +39,7 @@ class ReactionTemplate(BaseThumbnailTemplate):
         for size in (110, 96, 80, 68):
             font = _load_font(TITLE_FONT_PATH, size)
             fits = all(
-                draw.textbbox((0, 0), ln, font=font)[2] <= text_zone_w
-                for ln in lines
+                draw.textbbox((0, 0), ln, font=font)[2] <= text_zone_w for ln in lines
             )
             if fits:
                 break
@@ -44,8 +50,7 @@ class ReactionTemplate(BaseThumbnailTemplate):
         for i, line in enumerate(lines):
             y = start_y + i * line_h
             self.draw_text_with_stroke(
-                draw, line, (TEXT_X, y), font,
-                fill=(255, 255, 255), stroke_width=5
+                draw, line, (TEXT_X, y), font, fill=(255, 255, 255), stroke_width=5
             )
 
         # Arrow pointing left toward face

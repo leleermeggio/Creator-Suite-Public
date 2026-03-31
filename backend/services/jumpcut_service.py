@@ -287,7 +287,7 @@ def _build_filter_complex(
     if has_video and has_audio:
         # Trim each segment — per-segment afade prevents clicks at cut points
         for i, seg in enumerate(segments):
-            duration = seg['end'] - seg['start']
+            duration = seg["end"] - seg["start"]
             parts.append(
                 f"[0:v]trim=start={seg['start']:.4f}:end={seg['end']:.4f},"
                 f"setpts=PTS-STARTPTS[v{i}];"
@@ -296,8 +296,8 @@ def _build_filter_complex(
             parts.append(
                 f"[0:a]atrim=start={seg['start']:.4f}:end={seg['end']:.4f},"
                 f"asetpts=PTS-STARTPTS,"
-                f"afade=t=in:st=0:d={min(crossfade, duration/2):.3f},"
-                f"afade=t=out:st={max(0, duration - crossfade):.3f}:d={min(crossfade, duration/2):.3f}[a{i}];"
+                f"afade=t=in:st=0:d={min(crossfade, duration / 2):.3f},"
+                f"afade=t=out:st={max(0, duration - crossfade):.3f}:d={min(crossfade, duration / 2):.3f}[a{i}];"
             )
         # Interleave video and audio inputs for concat filter (v0,a0,v1,a1,...)
         interleaved = "".join(f"[v{i}][a{i}]" for i in range(n))
@@ -308,12 +308,12 @@ def _build_filter_complex(
     elif has_audio:
         # Audio-only: atrim + concat
         for i, seg in enumerate(segments):
-            duration = seg['end'] - seg['start']
+            duration = seg["end"] - seg["start"]
             parts.append(
                 f"[0:a]atrim=start={seg['start']:.4f}:end={seg['end']:.4f},"
                 f"asetpts=PTS-STARTPTS,"
-                f"afade=t=in:st=0:d={min(crossfade, duration/2):.3f},"
-                f"afade=t=out:st={max(0, duration - crossfade):.3f}:d={min(crossfade, duration/2):.3f}[a{i}];"
+                f"afade=t=in:st=0:d={min(crossfade, duration / 2):.3f},"
+                f"afade=t=out:st={max(0, duration - crossfade):.3f}:d={min(crossfade, duration / 2):.3f}[a{i}];"
             )
         a_inputs = "".join(f"[a{i}]" for i in range(n))
         parts.append(f"{a_inputs}concat=n={n}:v=0:a=1[outa]")

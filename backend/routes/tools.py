@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import os
 import shutil
@@ -12,8 +13,6 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
-
-import base64
 
 from backend.auth.dependencies import get_current_user
 from backend.config import get_settings
@@ -62,19 +61,21 @@ async def jumpcut(
                 "Accept": "*/*",
                 "Accept-Language": "en-US,en;q=0.9,it;q=0.8",
                 "Accept-Encoding": "gzip, deflate, br",
-                "Referer": url.rsplit('/', 1)[0] + "/",
+                "Referer": url.rsplit("/", 1)[0] + "/",
                 "DNT": "1",
                 "Connection": "keep-alive",
                 "Upgrade-Insecure-Requests": "1",
             }
-            async with httpx.AsyncClient(timeout=300.0, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                timeout=300.0, follow_redirects=True
+            ) as client:
                 resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 # Try to get filename from Content-Disposition or URL
                 cd = resp.headers.get("content-disposition", "")
                 filename = None
                 if "filename=" in cd:
-                    filename = cd.split("filename=")[-1].strip('"\'')
+                    filename = cd.split("filename=")[-1].strip("\"'")
                 if not filename:
                     filename = url.split("/")[-1].split("?")[0] or "download.mp4"
                 ext = os.path.splitext(filename)[1] or ".mp4"
@@ -605,8 +606,13 @@ async def _nanobanana_generate(
             task_data = task_data[0] if task_data else {}
         success_flag = task_data.get("successFlag")
         error_code = task_data.get("errorCode")
-        logger.info("NanoBanana poll #%d taskId=%s successFlag=%r errorCode=%r",
-                    attempt, task_id, success_flag, error_code)
+        logger.info(
+            "NanoBanana poll #%d taskId=%s successFlag=%r errorCode=%r",
+            attempt,
+            task_id,
+            success_flag,
+            error_code,
+        )
 
         if success_flag == 1:
             response = task_data.get("response") or {}
@@ -614,7 +620,9 @@ async def _nanobanana_generate(
             if url:
                 image_url = url
                 break
-            raise ValueError(f"NanoBanana success but no resultImageUrl in: {task_data}")
+            raise ValueError(
+                f"NanoBanana success but no resultImageUrl in: {task_data}"
+            )
         elif error_code is not None:
             raise ValueError(
                 f"NanoBanana failed: errorCode={error_code} "
@@ -637,6 +645,7 @@ async def _nanobanana_generate(
 
 
 # ── Stable Horde image generation (free, anonymous) ──────────────────────────
+
 
 async def _stable_horde_generate(
     client: httpx.AsyncClient,
@@ -699,7 +708,11 @@ async def _stable_horde_generate(
         if check_data.get("done"):
             break
         queue_pos = check_data.get("queue_position", "?")
-        logger.info("🎨 Waiting for Stable Horde job... queue pos=%s attempt=%d", queue_pos, attempt)
+        logger.info(
+            "🎨 Waiting for Stable Horde job... queue pos=%s attempt=%d",
+            queue_pos,
+            attempt,
+        )
     else:
         raise ValueError("Stable Horde job timed out after 120 seconds")
 
@@ -727,7 +740,7 @@ async def generate_image(
     _user: User = Depends(get_current_user),
 ) -> GenerateImageResult:
     provider = body.provider or "stable-horde"
-    
+
     async with httpx.AsyncClient() as client:
         try:
             # NanoBanana (requires API key)
@@ -739,18 +752,31 @@ async def generate_image(
                     )
                 model = body.model or "nano-banana"
                 image_b64 = await _nanobanana_generate(
-                    client, body.prompt, body.width, body.height, body.api_key, model,
+                    client,
+                    body.prompt,
+                    body.width,
+                    body.height,
+                    body.api_key,
+                    model,
                 )
-                return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
-            
+                return GenerateImageResult(
+                    image_base64=image_b64, mime_type="image/png"
+                )
+
             # Stable Horde (default, free, no key needed)
             else:
                 model = body.model or "Deliberate"
                 image_b64 = await _stable_horde_generate(
-                    client, body.prompt, body.width, body.height, model,
+                    client,
+                    body.prompt,
+                    body.width,
+                    body.height,
+                    model,
                 )
-                return GenerateImageResult(image_base64=image_b64, mime_type="image/png")
-                
+                return GenerateImageResult(
+                    image_base64=image_b64, mime_type="image/png"
+                )
+
         except HTTPException:
             raise
         except httpx.HTTPStatusError as exc:
@@ -774,7 +800,9 @@ async def generate_image(
 @router.post("/convert")
 async def convert_media(
     file: UploadFile = File(...),
-    target_format: str = Query(..., description="Target format (mp3, wav, ogg, mp4, mkv, webm, avi)"),
+    target_format: str = Query(
+        ..., description="Target format (mp3, wav, ogg, mp4, mkv, webm, avi)"
+    ),
     _user: User = Depends(get_current_user),
 ) -> FileResponse:
     """Convert audio/video file to target format using FFmpeg."""
@@ -782,7 +810,7 @@ async def convert_media(
 
     supported = ["mp3", "wav", "ogg", "aac", "mp4", "mkv", "webm", "avi", "mov"]
     target_format = target_format.lower().strip(".")
-    
+
     if target_format not in supported:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -840,7 +868,9 @@ async def convert_media(
 
 @router.post("/download")
 async def download_media(
-    url: str = Query(..., description="URL to download from (YouTube, Instagram, etc.)"),
+    url: str = Query(
+        ..., description="URL to download from (YouTube, Instagram, etc.)"
+    ),
     format_type: str = Query("video", description="Type: video or audio"),
     _user: User = Depends(get_current_user),
 ) -> FileResponse:
@@ -911,7 +941,9 @@ class TranscribeResult(BaseModel):
 async def transcribe_audio(
     file: UploadFile = File(...),
     language: str | None = Query(None, description="Language code (e.g. 'it', 'en')"),
-    model: str = Query("small", description="Whisper model: tiny, small, medium, large"),
+    model: str = Query(
+        "small", description="Whisper model: tiny, small, medium, large"
+    ),
     _user: User = Depends(get_current_user),
 ) -> TranscribeResult:
     """Transcribe audio/video file using Whisper AI."""
@@ -982,7 +1014,9 @@ class AnalyzeMediaResponse(BaseModel):
 async def analyze_media(
     file: UploadFile | None = File(None),
     url: str | None = Query(None, description="URL to download media from"),
-    transcript: str | None = Query(None, description="Optional transcript text for AI insights"),
+    transcript: str | None = Query(
+        None, description="Optional transcript text for AI insights"
+    ),
     _user: User = Depends(get_current_user),
 ) -> AnalyzeMediaResponse:
     """Analyze a media file: FFmpeg probe + rule-based + optional Gemini transcript insights."""

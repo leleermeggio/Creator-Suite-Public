@@ -3,11 +3,11 @@ from backend.models.analytics_event import AnalyticsEvent
 from backend.models.caption import Caption
 from backend.models.comment import Comment
 from backend.models.enums import ControlMode, JobStatus, JobType, MissionStatus
-from backend.models.mission import Mission
 from backend.models.export import Export, ExportFormat, ExportStatus
 from backend.models.graphics_overlay import GraphicsOverlay, OverlayType
 from backend.models.job import Job
 from backend.models.media_asset import MediaAsset
+from backend.models.mission import Mission
 from backend.models.project import Project
 from backend.models.project_member import ProjectMember, ProjectRole
 from backend.models.review import Review, ReviewStatus

@@ -10,7 +10,9 @@ from backend.models.thumbnail import ThumbnailSource
 class ThumbnailExtractRequest(BaseModel):
     project_id: str
     asset_id: str
-    timestamp: float = Field(ge=0.0, description="Timestamp in seconds to extract frame")
+    timestamp: float = Field(
+        ge=0.0, description="Timestamp in seconds to extract frame"
+    )
 
 
 class ThumbnailGenerateRequest(BaseModel):

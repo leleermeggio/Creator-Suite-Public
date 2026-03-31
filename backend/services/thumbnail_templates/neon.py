@@ -1,10 +1,18 @@
 # backend/services/thumbnail_templates/neon.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
+
 
 class NeonTemplate(BaseThumbnailTemplate):
     """Very dark background + neon glowing text + HUD corner brackets."""
@@ -66,14 +74,28 @@ class NeonTemplate(BaseThumbnailTemplate):
 
         # HUD corner brackets
         bracket_size, bw = 28, 3
-        corners = [(10, 10), (W - 10 - bracket_size, 10),
-                   (10, H - 10 - bracket_size), (W - 10 - bracket_size, H - 10 - bracket_size)]
+        corners = [
+            (10, 10),
+            (W - 10 - bracket_size, 10),
+            (10, H - 10 - bracket_size),
+            (W - 10 - bracket_size, H - 10 - bracket_size),
+        ]
         for cx2, cy2 in corners:
             # top/bottom horizontal
-            draw.rectangle([cx2, cy2, cx2 + bracket_size, cy2 + bw], fill=ctx.accent_color)
-            draw.rectangle([cx2, cy2 + bracket_size - bw, cx2 + bracket_size, cy2 + bracket_size], fill=ctx.accent_color)
+            draw.rectangle(
+                [cx2, cy2, cx2 + bracket_size, cy2 + bw], fill=ctx.accent_color
+            )
+            draw.rectangle(
+                [cx2, cy2 + bracket_size - bw, cx2 + bracket_size, cy2 + bracket_size],
+                fill=ctx.accent_color,
+            )
             # left/right vertical
-            draw.rectangle([cx2, cy2, cx2 + bw, cy2 + bracket_size], fill=ctx.accent_color)
-            draw.rectangle([cx2 + bracket_size - bw, cy2, cx2 + bracket_size, cy2 + bracket_size], fill=ctx.accent_color)
+            draw.rectangle(
+                [cx2, cy2, cx2 + bw, cy2 + bracket_size], fill=ctx.accent_color
+            )
+            draw.rectangle(
+                [cx2 + bracket_size - bw, cy2, cx2 + bracket_size, cy2 + bracket_size],
+                fill=ctx.accent_color,
+            )
 
         return img

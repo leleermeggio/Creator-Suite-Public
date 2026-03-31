@@ -1,10 +1,18 @@
 # backend/services/thumbnail_templates/gradient_bar.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
+
 
 class GradientBarTemplate(BaseThumbnailTemplate):
     """AI scene top 55%, strong gradient fade, title + subtitle at bottom."""
@@ -26,7 +34,12 @@ class GradientBarTemplate(BaseThumbnailTemplate):
             draw.ellipse([bx, by, bx + 70, by + 70], fill=ctx.accent_color)
             bbox = draw.textbbox((0, 0), badge_num, font=bfont)
             bw = bbox[2] - bbox[0]
-            draw.text((bx + (70 - bw) // 2, by + 6), badge_num, font=bfont, fill=(255, 255, 255))
+            draw.text(
+                (bx + (70 - bw) // 2, by + 6),
+                badge_num,
+                font=bfont,
+                fill=(255, 255, 255),
+            )
 
         # Subtitle line above title
         if ctx.subtitle:
@@ -49,8 +62,12 @@ class GradientBarTemplate(BaseThumbnailTemplate):
 
         for i, line in enumerate(lines):
             self.draw_text_with_stroke(
-                draw, line, (36, start_y + i * line_h),
-                font, fill=(255, 255, 255), stroke_width=4
+                draw,
+                line,
+                (36, start_y + i * line_h),
+                font,
+                fill=(255, 255, 255),
+                stroke_width=4,
             )
 
         return img

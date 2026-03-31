@@ -7,12 +7,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.auth.dependencies import get_current_user, get_db
 from backend.models.agent import Agent
 from backend.models.user import User
-from backend.schemas.agent import AgentCreate, AgentGenerateRequest, AgentResponse, AgentUpdate
+from backend.schemas.agent import (
+    AgentCreate,
+    AgentGenerateRequest,
+    AgentResponse,
+    AgentUpdate,
+)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
-@router.post("/generate", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/generate", response_model=AgentResponse, status_code=status.HTTP_201_CREATED
+)
 async def generate_agent(
     body: AgentGenerateRequest,
     user: User = Depends(get_current_user),
@@ -79,9 +86,7 @@ async def list_preset_agents(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Agent)
-        .where(Agent.is_preset.is_(True))
-        .order_by(Agent.created_at.desc())
+        select(Agent).where(Agent.is_preset.is_(True)).order_by(Agent.created_at.desc())
     )
     return list(result.scalars().all())
 

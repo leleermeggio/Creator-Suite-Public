@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import operator as _op
+import re as _re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -32,6 +34,7 @@ _TOOL_TO_JOB_TYPE: dict[str, JobType] = {
 
 # ── Mode logic helpers ─────────────────────────────────────────────────────────
 
+
 def _should_auto_run(step_def: dict[str, Any], mode: ControlMode) -> bool:
     """Return True if this step should run automatically given the current control mode."""
     if mode == ControlMode.REGISTA:
@@ -42,13 +45,14 @@ def _should_auto_run(step_def: dict[str, Any], mode: ControlMode) -> bool:
     return bool(step_def.get("auto_run", False))
 
 
-import operator as _op
-import re as _re
-
 _CONDITION_RE = _re.compile(r"^(\w+)\s*(>|<|>=|<=|==|!=)\s*(\d+(?:\.\d+)?)$")
 _OPS = {
-    ">": _op.gt, "<": _op.lt, ">=": _op.ge,
-    "<=": _op.le, "==": _op.eq, "!=": _op.ne,
+    ">": _op.gt,
+    "<": _op.lt,
+    ">=": _op.ge,
+    "<=": _op.le,
+    "==": _op.eq,
+    "!=": _op.ne,
 }
 
 
@@ -62,7 +66,9 @@ def _evaluate_condition(condition: str | None, context: dict[str, Any]) -> bool:
         return True
     match = _CONDITION_RE.match(condition.strip())
     if not match:
-        logger.warning("⚠️ Condition syntax not supported (%r) — defaulting to True", condition)
+        logger.warning(
+            "⚠️ Condition syntax not supported (%r) — defaulting to True", condition
+        )
         return True
     var_name, op_str, value_str = match.groups()
     left = context.get(var_name)
@@ -71,11 +77,14 @@ def _evaluate_condition(condition: str | None, context: dict[str, Any]) -> bool:
     try:
         return _OPS[op_str](float(left), float(value_str))
     except (TypeError, ValueError) as exc:
-        logger.warning("⚠️ Condition eval failed (%r): %s — defaulting to True", condition, exc)
+        logger.warning(
+            "⚠️ Condition eval failed (%r): %s — defaulting to True", condition, exc
+        )
         return True
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────────
+
 
 def _build_step_result(
     step_index: int,
@@ -110,7 +119,9 @@ async def _fetch_mission_and_agent(
     agent_result = await db.execute(select(Agent).where(Agent.id == mission.agent_id))
     agent = agent_result.scalar_one_or_none()
     if not agent:
-        raise ValueError(f"Agent {mission.agent_id!r} not found for mission {mission_id!r}")
+        raise ValueError(
+            f"Agent {mission.agent_id!r} not found for mission {mission_id!r}"
+        )
 
     return mission, agent
 
@@ -130,6 +141,7 @@ def _upsert_step_result(
 
 
 # ── Public service API ─────────────────────────────────────────────────────────
+
 
 async def start_mission(
     db: AsyncSession,
@@ -303,16 +315,24 @@ async def update_step_params(
 
     steps = list(agent.steps or [])
     if step_index >= len(steps):
-        raise ValueError(f"Step index {step_index} out of range (agent has {len(steps)} steps)")
+        raise ValueError(
+            f"Step index {step_index} out of range (agent has {len(steps)} steps)"
+        )
 
     for sr in mission.step_results or []:
-        if sr.get("step_index") == step_index and sr.get("status") in ("RUNNING", "COMPLETED"):
+        if sr.get("step_index") == step_index and sr.get("status") in (
+            "RUNNING",
+            "COMPLETED",
+        ):
             raise ValueError(
                 f"Step {step_index} is already {sr['status']} — cannot update parameters"
             )
 
     existing_params = steps[step_index].get("parameters", {})
-    steps[step_index] = {**steps[step_index], "parameters": {**existing_params, **parameters}}
+    steps[step_index] = {
+        **steps[step_index],
+        "parameters": {**existing_params, **parameters},
+    }
     agent.steps = steps
     await db.commit()
     await db.refresh(mission)

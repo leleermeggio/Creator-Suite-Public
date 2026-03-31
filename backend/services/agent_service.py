@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import uuid
 from typing import Any
 
 from sqlalchemy import select
@@ -25,11 +24,50 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["tiktok", "reels", "shorts"],
         "steps": [
-            {"tool_id": "download", "label": "Importa Video", "parameters": {}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "jumpcut", "label": "Rimuovi Silenzi", "parameters": {"silence_threshold": -35.0, "min_silence": 0.4, "padding": 0.12}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "caption", "label": "Genera Sottotitoli", "parameters": {"style": "shorts"}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "thumbnail", "label": "Genera Thumbnail", "parameters": {"style": "viral"}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "export", "label": "Esporta", "parameters": {"format": "mp4", "resolution": "1080x1920"}, "auto_run": False, "required": True, "condition": None},
+            {
+                "tool_id": "download",
+                "label": "Importa Video",
+                "parameters": {},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "jumpcut",
+                "label": "Rimuovi Silenzi",
+                "parameters": {
+                    "silence_threshold": -35.0,
+                    "min_silence": 0.4,
+                    "padding": 0.12,
+                },
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "caption",
+                "label": "Genera Sottotitoli",
+                "parameters": {"style": "shorts"},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "thumbnail",
+                "label": "Genera Thumbnail",
+                "parameters": {"style": "viral"},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta",
+                "parameters": {"format": "mp4", "resolution": "1080x1920"},
+                "auto_run": False,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -40,10 +78,38 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["youtube", "spotify"],
         "steps": [
-            {"tool_id": "transcribe", "label": "Trascrivi", "parameters": {"model": "small"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "analyze_media", "label": "Trova Momenti Chiave", "parameters": {}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "caption", "label": "Aggiungi Sottotitoli", "parameters": {}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "export", "label": "Esporta Clip", "parameters": {"format": "mp4"}, "auto_run": False, "required": True, "condition": None},
+            {
+                "tool_id": "transcribe",
+                "label": "Trascrivi",
+                "parameters": {"model": "small"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "analyze_media",
+                "label": "Trova Momenti Chiave",
+                "parameters": {},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "caption",
+                "label": "Aggiungi Sottotitoli",
+                "parameters": {},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta Clip",
+                "parameters": {"format": "mp4"},
+                "auto_run": False,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -54,9 +120,30 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["blog", "linkedin"],
         "steps": [
-            {"tool_id": "transcribe", "label": "Trascrivi", "parameters": {"model": "small"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "analyze_media", "label": "Riassumi e Struttura", "parameters": {"output_format": "blog"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "translate", "label": "Traduci (opzionale)", "parameters": {"target_language": "en"}, "auto_run": False, "required": False, "condition": None},
+            {
+                "tool_id": "transcribe",
+                "label": "Trascrivi",
+                "parameters": {"model": "small"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "analyze_media",
+                "label": "Riassumi e Struttura",
+                "parameters": {"output_format": "blog"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "translate",
+                "label": "Traduci (opzionale)",
+                "parameters": {"target_language": "en"},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
         ],
     },
     {
@@ -67,8 +154,25 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["youtube", "tiktok", "reels"],
         "steps": [
-            {"tool_id": "analyze_media", "label": "Analizza Contenuto", "parameters": {}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "thumbnail", "label": "Genera Thumbnail Pack", "parameters": {"count": 4, "styles": ["bold", "minimal", "cinematic", "viral"]}, "auto_run": False, "required": True, "condition": None},
+            {
+                "tool_id": "analyze_media",
+                "label": "Analizza Contenuto",
+                "parameters": {},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "thumbnail",
+                "label": "Genera Thumbnail Pack",
+                "parameters": {
+                    "count": 4,
+                    "styles": ["bold", "minimal", "cinematic", "viral"],
+                },
+                "auto_run": False,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -79,8 +183,26 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.AUTOPILOTA,
         "target_platforms": ["youtube", "podcast"],
         "steps": [
-            {"tool_id": "audio_cleanup", "label": "Pulizia Audio", "parameters": {"denoise": True, "normalize": True, "target_loudness": -14}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "export", "label": "Esporta", "parameters": {"format": "mp4"}, "auto_run": True, "required": True, "condition": None},
+            {
+                "tool_id": "audio_cleanup",
+                "label": "Pulizia Audio",
+                "parameters": {
+                    "denoise": True,
+                    "normalize": True,
+                    "target_loudness": -14,
+                },
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta",
+                "parameters": {"format": "mp4"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -91,11 +213,46 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["tiktok", "reels", "shorts"],
         "steps": [
-            {"tool_id": "transcribe", "label": "Trascrivi", "parameters": {"model": "small"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "analyze_media", "label": "Identifica Clip", "parameters": {"suggest_clips": True}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "jumpcut", "label": "Ritaglia Clip", "parameters": {}, "auto_run": False, "required": True, "condition": "duration > 60"},
-            {"tool_id": "caption", "label": "Aggiungi Caption", "parameters": {"style": "shorts"}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "thumbnail", "label": "Genera Thumbnail", "parameters": {}, "auto_run": False, "required": False, "condition": None},
+            {
+                "tool_id": "transcribe",
+                "label": "Trascrivi",
+                "parameters": {"model": "small"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "analyze_media",
+                "label": "Identifica Clip",
+                "parameters": {"suggest_clips": True},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "jumpcut",
+                "label": "Ritaglia Clip",
+                "parameters": {},
+                "auto_run": False,
+                "required": True,
+                "condition": "duration > 60",
+            },
+            {
+                "tool_id": "caption",
+                "label": "Aggiungi Caption",
+                "parameters": {"style": "shorts"},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "thumbnail",
+                "label": "Genera Thumbnail",
+                "parameters": {},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
         ],
     },
     {
@@ -106,10 +263,38 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["youtube", "tiktok"],
         "steps": [
-            {"tool_id": "transcribe", "label": "Trascrivi", "parameters": {"model": "small"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "translate", "label": "Traduci Caption", "parameters": {"target_languages": ["en", "es", "fr"]}, "auto_run": False, "required": True, "condition": None},
-            {"tool_id": "tts", "label": "Genera Voiceover", "parameters": {}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "export", "label": "Esporta Localizzato", "parameters": {"format": "mp4"}, "auto_run": False, "required": True, "condition": None},
+            {
+                "tool_id": "transcribe",
+                "label": "Trascrivi",
+                "parameters": {"model": "small"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "translate",
+                "label": "Traduci Caption",
+                "parameters": {"target_languages": ["en", "es", "fr"]},
+                "auto_run": False,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "tts",
+                "label": "Genera Voiceover",
+                "parameters": {},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta Localizzato",
+                "parameters": {"format": "mp4"},
+                "auto_run": False,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -120,10 +305,46 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.AUTOPILOTA,
         "target_platforms": ["youtube", "tiktok", "instagram", "reels"],
         "steps": [
-            {"tool_id": "analyze_media", "label": "Analizza Contenuto", "parameters": {}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "caption", "label": "Genera Caption Adattate", "parameters": {}, "auto_run": True, "required": False, "condition": None},
-            {"tool_id": "export", "label": "Esporta per YouTube", "parameters": {"format": "mp4", "resolution": "1920x1080", "platform": "youtube"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "export", "label": "Esporta per TikTok/Reels", "parameters": {"format": "mp4", "resolution": "1080x1920", "platform": "tiktok"}, "auto_run": True, "required": True, "condition": None},
+            {
+                "tool_id": "analyze_media",
+                "label": "Analizza Contenuto",
+                "parameters": {},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "caption",
+                "label": "Genera Caption Adattate",
+                "parameters": {},
+                "auto_run": True,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta per YouTube",
+                "parameters": {
+                    "format": "mp4",
+                    "resolution": "1920x1080",
+                    "platform": "youtube",
+                },
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "export",
+                "label": "Esporta per TikTok/Reels",
+                "parameters": {
+                    "format": "mp4",
+                    "resolution": "1080x1920",
+                    "platform": "tiktok",
+                },
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
         ],
     },
     {
@@ -134,17 +355,53 @@ PRESET_AGENTS: list[dict[str, Any]] = [
         "default_mode": ControlMode.COPILOTA,
         "target_platforms": ["youtube", "tiktok"],
         "steps": [
-            {"tool_id": "download", "label": "Importa Video Esistente", "parameters": {}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "transcribe", "label": "Trascrivi", "parameters": {"model": "small"}, "auto_run": True, "required": True, "condition": None},
-            {"tool_id": "thumbnail", "label": "Nuova Thumbnail", "parameters": {"style": "fresh"}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "caption", "label": "Caption Aggiornate", "parameters": {}, "auto_run": False, "required": False, "condition": None},
-            {"tool_id": "analyze_media", "label": "Nuova Descrizione AI", "parameters": {"output_format": "description"}, "auto_run": True, "required": False, "condition": None},
+            {
+                "tool_id": "download",
+                "label": "Importa Video Esistente",
+                "parameters": {},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "transcribe",
+                "label": "Trascrivi",
+                "parameters": {"model": "small"},
+                "auto_run": True,
+                "required": True,
+                "condition": None,
+            },
+            {
+                "tool_id": "thumbnail",
+                "label": "Nuova Thumbnail",
+                "parameters": {"style": "fresh"},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "caption",
+                "label": "Caption Aggiornate",
+                "parameters": {},
+                "auto_run": False,
+                "required": False,
+                "condition": None,
+            },
+            {
+                "tool_id": "analyze_media",
+                "label": "Nuova Descrizione AI",
+                "parameters": {"output_format": "description"},
+                "auto_run": True,
+                "required": False,
+                "condition": None,
+            },
         ],
     },
 ]
 
 
 # ── Preset seeding ─────────────────────────────────────────────────────────────
+
 
 async def seed_presets(db: AsyncSession) -> int:
     """Seed preset agents if they don't exist yet. Returns count of inserted rows."""
@@ -176,6 +433,7 @@ async def seed_presets(db: AsyncSession) -> int:
 
 
 # ── AI-assisted agent generation ───────────────────────────────────────────────
+
 
 async def generate_agent_from_description(
     db: AsyncSession,
@@ -238,13 +496,29 @@ Rules:
 """
 
     _ALLOWED_TOOL_IDS = {
-        "download", "transcribe", "jumpcut", "caption", "thumbnail",
-        "export", "audio_cleanup", "translate", "tts", "analyze_media", "convert",
+        "download",
+        "transcribe",
+        "jumpcut",
+        "caption",
+        "thumbnail",
+        "export",
+        "audio_cleanup",
+        "translate",
+        "tts",
+        "analyze_media",
+        "convert",
     }
     _ALLOWED_MODES = {"REGISTA", "COPILOTA", "AUTOPILOTA"}
     _ALLOWED_PLATFORMS = {
-        "youtube", "tiktok", "instagram", "reels", "shorts",
-        "podcast", "blog", "linkedin", "spotify",
+        "youtube",
+        "tiktok",
+        "instagram",
+        "reels",
+        "shorts",
+        "podcast",
+        "blog",
+        "linkedin",
+        "spotify",
     }
 
     try:
@@ -271,35 +545,45 @@ Rules:
                 continue
             tool_id = str(raw_step.get("tool_id", ""))
             if tool_id not in _ALLOWED_TOOL_IDS:
-                logger.warning("⚠️ AI returned unknown tool_id %r — skipping step", tool_id)
+                logger.warning(
+                    "⚠️ AI returned unknown tool_id %r — skipping step", tool_id
+                )
                 continue
             # Only allow simple primitive values in parameters
             params = raw_step.get("parameters") or {}
             safe_params = {
-                k: v for k, v in params.items()
+                k: v
+                for k, v in params.items()
                 if isinstance(v, (str, int, float, bool)) and len(str(v)) < 500
             }
             # Condition must match simple comparison pattern or be null
             condition = raw_step.get("condition")
             if condition is not None:
                 import re as _re_check
-                if not _re_check.match(r"^\w+\s*(>|<|>=|<=|==|!=)\s*\d+(?:\.\d+)?$", str(condition).strip()):
+
+                if not _re_check.match(
+                    r"^\w+\s*(>|<|>=|<=|==|!=)\s*\d+(?:\.\d+)?$", str(condition).strip()
+                ):
                     condition = None
-            validated_steps.append({
-                "tool_id": tool_id,
-                "label": str(raw_step.get("label", tool_id))[:100],
-                "parameters": safe_params,
-                "auto_run": bool(raw_step.get("auto_run", False)),
-                "required": bool(raw_step.get("required", True)),
-                "condition": condition,
-            })
+            validated_steps.append(
+                {
+                    "tool_id": tool_id,
+                    "label": str(raw_step.get("label", tool_id))[:100],
+                    "parameters": safe_params,
+                    "auto_run": bool(raw_step.get("auto_run", False)),
+                    "required": bool(raw_step.get("required", True)),
+                    "condition": condition,
+                }
+            )
 
         raw_mode = str(data.get("default_mode", "COPILOTA")).upper()
         if raw_mode not in _ALLOWED_MODES:
             raw_mode = "COPILOTA"
 
         raw_platforms = data.get("target_platforms", [])
-        safe_platforms = [p for p in raw_platforms if isinstance(p, str) and p in _ALLOWED_PLATFORMS]
+        safe_platforms = [
+            p for p in raw_platforms if isinstance(p, str) and p in _ALLOWED_PLATFORMS
+        ]
 
         agent = Agent(
             user_id=user_id,

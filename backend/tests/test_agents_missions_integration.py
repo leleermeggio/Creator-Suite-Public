@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Integration test: create agent → start mission → execute step.
 
 Covers Phase 2 services end-to-end:
@@ -10,8 +8,9 @@ Covers Phase 2 services end-to-end:
   media_analysis_service → probe_media, generate_rule_based_insights (unit)
 """
 
-import pytest
+from __future__ import annotations
 
+import pytest
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -88,9 +87,7 @@ async def test_list_agents_includes_created(client):
     token = await _register(client, "agent_list@example.com")
     await _create_agent(client, token)
 
-    resp = await client.get(
-        "/agents/", headers={"Authorization": f"Bearer {token}"}
-    )
+    resp = await client.get("/agents/", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     agents = resp.json()
     assert any(a["name"] == "Test Agent" for a in agents)
@@ -185,9 +182,7 @@ async def test_list_missions(client):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    resp = await client.get(
-        "/missions/", headers={"Authorization": f"Bearer {token}"}
-    )
+    resp = await client.get("/missions/", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
 
@@ -431,7 +426,6 @@ async def test_seed_presets(db_session):
 @pytest.mark.asyncio
 async def test_presets_visible_in_list(client):
     """After seeding, presets appear in /agents/ for any authenticated user."""
-    from backend.services.agent_service import seed_presets
 
     # Seed directly via the app's DB (requires app fixture DB)
     # We instead register, then call list_preset_agents via the route

@@ -1,10 +1,18 @@
 # backend/services/thumbnail_templates/minimal.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw, ImageEnhance
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
+
 
 class MinimalTemplate(BaseThumbnailTemplate):
     """Dark desaturated background, centered category pill + large title."""
@@ -59,6 +67,8 @@ class MinimalTemplate(BaseThumbnailTemplate):
 
         # Accent underline
         uy = start_y + len(lines) * line_h + 16
-        draw.rectangle([(W // 2 - 30, uy), (W // 2 + 30, uy + 3)], fill=ctx.accent_color)
+        draw.rectangle(
+            [(W // 2 - 30, uy), (W // 2 + 30, uy + 3)], fill=ctx.accent_color
+        )
 
         return img

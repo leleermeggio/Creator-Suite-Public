@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ── FFmpeg probe ───────────────────────────────────────────────────────────────
 
+
 def probe_media(file_path: str) -> dict[str, Any]:
     """Run ffprobe + ffmpeg loudnorm/silencedetect on a file.
 
@@ -35,12 +36,18 @@ def probe_media(file_path: str) -> dict[str, Any]:
     # --- Basic stream info ---
     try:
         probe_cmd = [
-            "ffprobe", "-v", "quiet",
-            "-print_format", "json",
-            "-show_format", "-show_streams",
+            "ffprobe",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
             file_path,
         ]
-        probe_out = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=30)
+        probe_out = subprocess.run(
+            probe_cmd, capture_output=True, text=True, timeout=30
+        )
         if probe_out.returncode != 0:
             logger.warning("ffprobe non-zero exit: %s", probe_out.stderr[:200])
             return result
@@ -79,11 +86,18 @@ def probe_media(file_path: str) -> dict[str, Any]:
     # --- Loudness (EBU R128) ---
     try:
         loudnorm_cmd = [
-            "ffmpeg", "-i", file_path,
-            "-af", "loudnorm=print_format=json",
-            "-f", "null", "-",
+            "ffmpeg",
+            "-i",
+            file_path,
+            "-af",
+            "loudnorm=print_format=json",
+            "-f",
+            "null",
+            "-",
         ]
-        loudnorm_out = subprocess.run(loudnorm_cmd, capture_output=True, text=True, timeout=60)
+        loudnorm_out = subprocess.run(
+            loudnorm_cmd, capture_output=True, text=True, timeout=60
+        )
         stderr = loudnorm_out.stderr
         start = stderr.rfind("{")
         end = stderr.rfind("}") + 1
@@ -96,11 +110,18 @@ def probe_media(file_path: str) -> dict[str, Any]:
     # --- Silence detection ---
     try:
         silence_cmd = [
-            "ffmpeg", "-i", file_path,
-            "-af", "silencedetect=noise=-35dB:d=0.4",
-            "-f", "null", "-",
+            "ffmpeg",
+            "-i",
+            file_path,
+            "-af",
+            "silencedetect=noise=-35dB:d=0.4",
+            "-f",
+            "null",
+            "-",
         ]
-        silence_out = subprocess.run(silence_cmd, capture_output=True, text=True, timeout=60)
+        silence_out = subprocess.run(
+            silence_cmd, capture_output=True, text=True, timeout=60
+        )
         duration = result.get("duration") or 0.0
         silence_starts: list[float] = []
         silence_ends: list[float] = []
@@ -108,7 +129,9 @@ def probe_media(file_path: str) -> dict[str, Any]:
         for line in silence_out.stderr.split("\n"):
             if "silence_start" in line:
                 try:
-                    silence_starts.append(float(line.split("silence_start:")[1].strip()))
+                    silence_starts.append(
+                        float(line.split("silence_start:")[1].strip())
+                    )
                 except (IndexError, ValueError):
                     pass
             elif "silence_end" in line:
@@ -119,7 +142,9 @@ def probe_media(file_path: str) -> dict[str, Any]:
                 except (IndexError, ValueError):
                     pass
 
-        silence_total = sum(max(0.0, e - s) for s, e in zip(silence_starts, silence_ends))
+        silence_total = sum(
+            max(0.0, e - s) for s, e in zip(silence_starts, silence_ends)
+        )
         result["silence_percent"] = (
             round((silence_total / duration) * 100, 1) if duration > 0 else 0.0
         )
@@ -131,50 +156,58 @@ def probe_media(file_path: str) -> dict[str, Any]:
 
 # ── Rule-based insights (no AI required) ──────────────────────────────────────
 
+
 def generate_rule_based_insights(media_meta: dict[str, Any]) -> list[dict[str, Any]]:
     """Generate InsightCard dicts from media metadata heuristics alone."""
     insights: list[dict[str, Any]] = []
 
     silence_pct = media_meta.get("silence_percent")
     if silence_pct is not None and silence_pct >= 30:
-        insights.append({
-            "id": str(uuid.uuid4()),
-            "type": "quality",
-            "message": f"{silence_pct:.0f}% silenzio rilevato — Jumpcut consigliato",
-            "action_tool": "jumpcut",
-            "action_params": {"silence_threshold": -35.0, "min_silence": 0.4},
-            "status": "PENDING",
-            "confidence": 0.9,
-        })
+        insights.append(
+            {
+                "id": str(uuid.uuid4()),
+                "type": "quality",
+                "message": f"{silence_pct:.0f}% silenzio rilevato — Jumpcut consigliato",
+                "action_tool": "jumpcut",
+                "action_params": {"silence_threshold": -35.0, "min_silence": 0.4},
+                "status": "PENDING",
+                "confidence": 0.9,
+            }
+        )
 
     loudness = media_meta.get("loudness_lufs")
     if loudness is not None and loudness < -23:
-        insights.append({
-            "id": str(uuid.uuid4()),
-            "type": "quality",
-            "message": f"Audio basso ({loudness:.1f} LUFS) — normalizzazione consigliata",
-            "action_tool": "audio_cleanup",
-            "action_params": {"normalize": True, "target_loudness": -14},
-            "status": "PENDING",
-            "confidence": 0.85,
-        })
+        insights.append(
+            {
+                "id": str(uuid.uuid4()),
+                "type": "quality",
+                "message": f"Audio basso ({loudness:.1f} LUFS) — normalizzazione consigliata",
+                "action_tool": "audio_cleanup",
+                "action_params": {"normalize": True, "target_loudness": -14},
+                "status": "PENDING",
+                "confidence": 0.85,
+            }
+        )
 
     duration = media_meta.get("duration")
     if duration and duration > 180:
-        insights.append({
-            "id": str(uuid.uuid4()),
-            "type": "opportunity",
-            "message": f"Video lungo ({duration / 60:.1f} min) — considera clip per Shorts/Reels",
-            "action_tool": "analyze_media",
-            "action_params": {"suggest_clips": True},
-            "status": "PENDING",
-            "confidence": 0.75,
-        })
+        insights.append(
+            {
+                "id": str(uuid.uuid4()),
+                "type": "opportunity",
+                "message": f"Video lungo ({duration / 60:.1f} min) — considera clip per Shorts/Reels",
+                "action_tool": "analyze_media",
+                "action_params": {"suggest_clips": True},
+                "status": "PENDING",
+                "confidence": 0.75,
+            }
+        )
 
     return insights
 
 
 # ── Gemini transcript analysis ─────────────────────────────────────────────────
+
 
 def analyze_transcript_with_gemini(
     transcript_text: str,
@@ -248,8 +281,16 @@ Rules:
             return []
 
         _ALLOWED_INSIGHT_TOOLS = {
-            "jumpcut", "caption", "thumbnail", "transcribe", "translate",
-            "tts", "export", "audio_cleanup", "analyze_media", None,
+            "jumpcut",
+            "caption",
+            "thumbnail",
+            "transcribe",
+            "translate",
+            "tts",
+            "export",
+            "audio_cleanup",
+            "analyze_media",
+            None,
         }
         insights = []
         for item in data:
@@ -259,18 +300,21 @@ Rules:
             # Only allow simple primitive values in action_params
             raw_params = item.get("action_params") or {}
             safe_params = {
-                k: v for k, v in raw_params.items()
+                k: v
+                for k, v in raw_params.items()
                 if isinstance(v, (str, int, float, bool)) and len(str(v)) < 200
             }
-            insights.append({
-                "id": str(uuid.uuid4()),
-                "type": str(item.get("type", "opportunity")),
-                "message": str(item.get("message", ""))[:200],
-                "action_tool": action_tool,
-                "action_params": safe_params,
-                "status": "PENDING",
-                "confidence": float(item.get("confidence", 0.5)),
-            })
+            insights.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "type": str(item.get("type", "opportunity")),
+                    "message": str(item.get("message", ""))[:200],
+                    "action_tool": action_tool,
+                    "action_params": safe_params,
+                    "status": "PENDING",
+                    "confidence": float(item.get("confidence", 0.5)),
+                }
+            )
         return insights
 
     except json.JSONDecodeError as exc:
@@ -282,6 +326,7 @@ Rules:
 
 
 # ── Main analysis entry point ──────────────────────────────────────────────────
+
 
 def analyze_media(
     file_path: str,
@@ -309,7 +354,9 @@ def analyze_media(
         if ai_insights:
             # Merge: prefer AI insights, supplement with any rule insight types not covered
             ai_types = {i["type"] for i in ai_insights}
-            merged = ai_insights + [r for r in rule_insights if r["type"] not in ai_types]
+            merged = ai_insights + [
+                r for r in rule_insights if r["type"] not in ai_types
+            ]
             insights = merged
             transcript_analyzed = True
         else:

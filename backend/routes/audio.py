@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import asyncio
 import os
-import shutil
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
@@ -160,7 +158,9 @@ async def create_tts(
             path=output_path,
             media_type="audio/mpeg",
             filename=f"tts-{body.language}-{os.path.basename(output_path)}",
-            background=BackgroundTask(lambda: os.remove(output_path) if os.path.exists(output_path) else None),
+            background=BackgroundTask(
+                lambda: os.remove(output_path) if os.path.exists(output_path) else None
+            ),
         )
 
     # ── Project mode: async job ───────────────────────────────────────────────

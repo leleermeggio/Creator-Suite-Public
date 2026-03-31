@@ -226,10 +226,9 @@ def _handle_thumbnail_or_watermark(job_id: str, params: dict) -> dict:
     action = params.get("action", "")
 
     if action == "generate_thumbnail":
-        from backend.services.thumbnail_service import generate_thumbnail
-        import base64, os
-        from backend.storage.r2 import R2Client
         from backend.config import get_settings
+        from backend.services.thumbnail_service import generate_thumbnail
+        from backend.storage.r2 import R2Client
 
         png_bytes = generate_thumbnail(
             template_id=params.get("template_id", "impact"),
@@ -254,7 +253,9 @@ def _handle_thumbnail_or_watermark(job_id: str, params: dict) -> dict:
             download_url = r2.generate_download_url(storage_key, expires_in=86400)
         except Exception as e:
             logger.warning("R2 upload failed (%s) — saving locally", e)
-            local_dir = os.path.join(os.path.dirname(__file__), "..", "..", "media", "thumbnails")
+            local_dir = os.path.join(
+                os.path.dirname(__file__), "..", "..", "media", "thumbnails"
+            )
             os.makedirs(local_dir, exist_ok=True)
             local_path = os.path.join(local_dir, f"{job_id}.png")
             with open(local_path, "wb") as f:
@@ -264,10 +265,12 @@ def _handle_thumbnail_or_watermark(job_id: str, params: dict) -> dict:
 
         # Update thumbnail record
         import asyncio
+
         from sqlalchemy import update
-        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-        from backend.models.thumbnail import Thumbnail
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
         from backend.config import get_settings as gs
+        from backend.models.thumbnail import Thumbnail
 
         async def _update_db() -> None:
             s = gs()

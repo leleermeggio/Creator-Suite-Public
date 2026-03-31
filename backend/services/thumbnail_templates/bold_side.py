@@ -1,12 +1,20 @@
 # backend/services/thumbnail_templates/bold_side.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
 
 LEFT_PANEL_W = 480
+
 
 class BoldSideTemplate(BaseThumbnailTemplate):
     """Solid accent-color left panel with large title, AI image on the right."""
@@ -35,7 +43,9 @@ class BoldSideTemplate(BaseThumbnailTemplate):
 
         # Subject photo on right zone
         if ctx.subject_photo:
-            self.paste_subject(img, ctx.subject_photo, (LEFT_PANEL_W + 20, 0, W - LEFT_PANEL_W - 20, H))
+            self.paste_subject(
+                img, ctx.subject_photo, (LEFT_PANEL_W + 20, 0, W - LEFT_PANEL_W - 20, H)
+            )
 
         draw = ImageDraw.Draw(img)
 
@@ -55,15 +65,21 @@ class BoldSideTemplate(BaseThumbnailTemplate):
         for i, line in enumerate(lines):
             fill = colors[i % 2]
             self.draw_text_with_stroke(
-                draw, line, (24, start_y + i * line_h),
-                font, fill=fill, stroke_width=0,
-                stroke_fill=(0, 0, 0)
+                draw,
+                line,
+                (24, start_y + i * line_h),
+                font,
+                fill=fill,
+                stroke_width=0,
+                stroke_fill=(0, 0, 0),
             )
 
         # Subtitle (small, white, bottom of panel)
         if ctx.subtitle:
             sfont = _load_font(SUB_FONT_PATH, 28)
             sy = H - 50
-            draw.text((24, sy), ctx.subtitle.upper(), font=sfont, fill=(255, 255, 255, 180))
+            draw.text(
+                (24, sy), ctx.subtitle.upper(), font=sfont, fill=(255, 255, 255, 180)
+            )
 
         return img

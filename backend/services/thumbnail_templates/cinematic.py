@@ -1,15 +1,23 @@
 # backend/services/thumbnail_templates/cinematic.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    SUB_FONT_PATH,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
 
-TOP_BAR_H = int(H * 0.17)    # ~122px
-BOT_BAR_H = int(H * 0.22)    # ~158px
+TOP_BAR_H = int(H * 0.17)  # ~122px
+BOT_BAR_H = int(H * 0.22)  # ~158px
 SCENE_Y = TOP_BAR_H
 SCENE_H = H - TOP_BAR_H - BOT_BAR_H
+
 
 class CinematicTemplate(BaseThumbnailTemplate):
     """Black letterbox bars. Category in top bar, title in bottom bar."""
@@ -20,7 +28,9 @@ class CinematicTemplate(BaseThumbnailTemplate):
         # Crop to scene area then re-place
         scene = img.crop((0, 0, W, H))
         # Subtle vignette on scene
-        scene = self.apply_gradient_overlay(scene, "bottom", start_alpha=0, end_alpha=80)
+        scene = self.apply_gradient_overlay(
+            scene, "bottom", start_alpha=0, end_alpha=80
+        )
 
         # Rebuild with black bars
         result = Image.new("RGB", (W, H), (0, 0, 0))

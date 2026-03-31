@@ -67,7 +67,9 @@ async def extract_frame(
 
 
 @router.post(
-    "/generate", response_model=ThumbnailJobResponse, status_code=status.HTTP_202_ACCEPTED
+    "/generate",
+    response_model=ThumbnailJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def generate_thumbnail(
     body: ThumbnailGenerateRequest,
@@ -77,8 +79,9 @@ async def generate_thumbnail(
     """Queue a thumbnail generation job. Poll GET /jobs/{job_id} for result."""
     await _verify_project_access(body.project_id, user, db)
 
-    from backend.workers.tasks import process_job
     import uuid as _uuid
+
+    from backend.workers.tasks import process_job
 
     thumb = Thumbnail(
         id=str(_uuid.uuid4()),

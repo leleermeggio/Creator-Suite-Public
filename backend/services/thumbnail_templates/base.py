@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1280, 720
 _FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "fonts")
@@ -23,7 +23,7 @@ def _load_font(path: str, size: int) -> ImageFont.FreeTypeFont:
 class ThumbnailContext:
     title: str
     subtitle: Optional[str]
-    accent_color: tuple[int, int, int]      # RGB
+    accent_color: tuple[int, int, int]  # RGB
     subject_photo: Optional[Image.Image]
 
 
@@ -95,7 +95,9 @@ class BaseThumbnailTemplate:
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
         x, y = pos
         draw.rectangle([x, y, x + tw + padding * 2, y + th + padding], fill=bg_color)
-        draw.text((x + padding, y + padding // 2), text, font=font, fill=(255, 255, 255))
+        draw.text(
+            (x + padding, y + padding // 2), text, font=font, fill=(255, 255, 255)
+        )
         return img
 
     def wrap_text(
@@ -129,7 +131,7 @@ class BaseThumbnailTemplate:
         nw, nh = int(subject.width * ratio), int(subject.height * ratio)
         subject = subject.resize((nw, nh), Image.LANCZOS)
         ox = rx + (rw - nw) // 2
-        oy = ry + (rh - nh)   # anchor to bottom of region
+        oy = ry + (rh - nh)  # anchor to bottom of region
         if subject.mode == "RGBA":
             base.paste(subject, (ox, oy), subject)
         else:

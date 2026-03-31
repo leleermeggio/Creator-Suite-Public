@@ -14,18 +14,20 @@ logger = logging.getLogger(__name__)
 POLLINATIONS_BASE = "https://image.pollinations.ai/prompt"
 
 _TEMPLATE_PROMPTS: dict[str, str] = {
-    "impact":       "dramatic cinematic scene, vibrant colors, dynamic lighting, no text, no watermark, photorealistic, 4k",
-    "split":        "dark moody background, professional atmosphere, gradient dark, no faces, no text, studio lighting",
+    "impact": "dramatic cinematic scene, vibrant colors, dynamic lighting, no text, no watermark, photorealistic, 4k",
+    "split": "dark moody background, professional atmosphere, gradient dark, no faces, no text, studio lighting",
     "gradient-bar": "wide landscape scene, golden hour light, cinematic, no text, high contrast, atmospheric",
-    "bold-side":    "abstract background texture, bokeh, dark right side, no text, professional photography",
-    "minimal":      "subtle texture background, dark gradient, minimalist, no text, abstract pattern",
-    "reaction":     "dramatic background, expressive scene, no text, cinematic wide shot, vivid colors",
-    "neon":         "dark cyberpunk cityscape, neon lights reflection, dark background, sci-fi, no text",
-    "cinematic":    "cinematic widescreen landscape, dramatic sky, golden hour, no text, epic scene, film grain",
+    "bold-side": "abstract background texture, bokeh, dark right side, no text, professional photography",
+    "minimal": "subtle texture background, dark gradient, minimalist, no text, abstract pattern",
+    "reaction": "dramatic background, expressive scene, no text, cinematic wide shot, vivid colors",
+    "neon": "dark cyberpunk cityscape, neon lights reflection, dark background, sci-fi, no text",
+    "cinematic": "cinematic widescreen landscape, dramatic sky, golden hour, no text, epic scene, film grain",
 }
 
 
-def _build_pollinations_url(template_id: str, title: str, w: int = 1280, h: int = 720) -> str:
+def _build_pollinations_url(
+    template_id: str, title: str, w: int = 1280, h: int = 720
+) -> str:
     style = _TEMPLATE_PROMPTS.get(template_id, _TEMPLATE_PROMPTS["impact"])
     # Inject topic keywords from title for more relevant backgrounds
     topic_words = " ".join(title.split()[:4]).lower()
@@ -53,6 +55,7 @@ def _decode_photo(b64: str) -> Optional[Image.Image]:
     if not b64:
         return None
     import base64
+
     try:
         data = base64.b64decode(b64)
         return Image.open(io.BytesIO(data)).convert("RGBA")

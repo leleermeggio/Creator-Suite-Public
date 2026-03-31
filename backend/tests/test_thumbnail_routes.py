@@ -1,6 +1,8 @@
 from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 @pytest.fixture(autouse=True)
@@ -14,7 +16,11 @@ def mock_celery(monkeypatch):
 async def _register_and_get_token(client) -> str:
     resp = await client.post(
         "/auth/register",
-        json={"email": "thumbuser@example.com", "password": "StrongPass1!", "display_name": "Thumb"},
+        json={
+            "email": "thumbuser@example.com",
+            "password": "StrongPass1!",
+            "display_name": "Thumb",
+        },
     )
     return resp.json()["access_token"]
 

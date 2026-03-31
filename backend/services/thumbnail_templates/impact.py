@@ -1,10 +1,17 @@
 # backend/services/thumbnail_templates/impact.py
 from __future__ import annotations
+
 from PIL import Image, ImageDraw
+
 from backend.services.thumbnail_templates.base import (
-    BaseThumbnailTemplate, ThumbnailContext, W, H,
-    TITLE_FONT_PATH, SUB_FONT_PATH, _load_font,
+    TITLE_FONT_PATH,
+    BaseThumbnailTemplate,
+    H,
+    ThumbnailContext,
+    W,
+    _load_font,
 )
+
 
 class ImpactTemplate(BaseThumbnailTemplate):
     """Full-bleed AI background, centered bold title, badge top-left."""
@@ -34,6 +41,8 @@ class ImpactTemplate(BaseThumbnailTemplate):
             lw = bbox[2] - bbox[0]
             x = (W - lw) // 2
             y = start_y + i * line_h
-            self.draw_text_with_stroke(draw, line, (x, y), font, fill=(255, 255, 255), stroke_width=4)
+            self.draw_text_with_stroke(
+                draw, line, (x, y), font, fill=(255, 255, 255), stroke_width=4
+            )
 
         return img

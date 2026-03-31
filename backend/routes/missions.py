@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
 from backend.models.agent import Agent
+from backend.models.enums import MissionStatus
 from backend.models.mission import Mission
 from backend.models.project import Project
-from backend.models.enums import MissionStatus
 from backend.models.user import User
 from backend.schemas.mission import (
     MissionCreate,
@@ -38,9 +38,7 @@ async def start_mission(
         )
 
 
-@router.post(
-    "/{mission_id}/steps/{step_index}/execute", response_model=MissionResponse
-)
+@router.post("/{mission_id}/steps/{step_index}/execute", response_model=MissionResponse)
 async def execute_step(
     mission_id: str,
     step_index: int,
@@ -57,9 +55,7 @@ async def execute_step(
         )
 
 
-@router.put(
-    "/{mission_id}/steps/{step_index}/params", response_model=MissionResponse
-)
+@router.put("/{mission_id}/steps/{step_index}/params", response_model=MissionResponse)
 async def update_step_params(
     mission_id: str,
     step_index: int,
@@ -84,9 +80,7 @@ async def create_mission(
     db: AsyncSession = Depends(get_db),
 ):
     # Validate agent_id belongs to user or is preset
-    agent_result = await db.execute(
-        select(Agent).where(Agent.id == body.agent_id)
-    )
+    agent_result = await db.execute(select(Agent).where(Agent.id == body.agent_id))
     agent = agent_result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -262,14 +256,16 @@ async def skip_step(
             break
 
     if not step_found:
-        step_results.append({
-            "step_index": step_index,
-            "status": "SKIPPED",
-            "job_id": None,
-            "output": None,
-            "started_at": None,
-            "completed_at": None,
-        })
+        step_results.append(
+            {
+                "step_index": step_index,
+                "status": "SKIPPED",
+                "job_id": None,
+                "output": None,
+                "started_at": None,
+                "completed_at": None,
+            }
+        )
 
     mission.step_results = step_results
     await db.commit()
