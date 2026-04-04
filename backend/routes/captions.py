@@ -9,6 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
+from backend.services.translation_service import translate_segments
+
+logger = logging.getLogger(__name__)
 from backend.models.caption import Caption
 from backend.models.enums import JobStatus, JobType
 from backend.models.job import Job
