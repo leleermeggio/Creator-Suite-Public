@@ -112,4 +112,7 @@ showcase.html
 LA-BASE/
 
 # ── Misc build artifacts ──────────────────────────────────────────────────────
+*.local
+showcase.html
+bot.py.bak
 .worktrees/
