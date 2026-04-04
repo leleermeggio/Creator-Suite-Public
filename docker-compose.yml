@@ -6,7 +6,7 @@ services:
       - "127.0.0.1:8000:8000"
     env_file: ./backend/.env
     environment:
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8081,http://localhost:19006}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://app.creatorzone.duckdns.org,https://api.creatorzone.duckdns.org}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       # Override .env localhost refs with Docker service names
       - DATABASE_URL=postgresql+asyncpg://creator:creator@postgres:5432/creator_suite
