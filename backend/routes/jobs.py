@@ -5,10 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
+from backend.middleware.rate_limit import limiter
 from backend.models.job import Job
 from backend.models.project import Project
 from backend.models.user import User
-from backend.middleware.rate_limit import limiter
 from backend.schemas.jobs import JobCreate, JobResponse
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ from backend.schemas.platforms import (
     PlatformStatusResponse,
 )
 from backend.services import instagram_service, tiktok_service, youtube_service
-from backend.services.token_encryption import decrypt_token, encrypt_token
+from backend.services.token_encryption import encrypt_token
 
 logger = logging.getLogger(__name__)
 

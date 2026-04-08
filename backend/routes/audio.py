@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

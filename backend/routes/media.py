@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.auth.dependencies import get_current_user, get_db
 from backend.config import get_settings
+from backend.middleware.rate_limit import limiter
 from backend.models.enums import JobStatus, JobType
 from backend.models.job import Job
 from backend.models.media_asset import MediaAsset
@@ -18,7 +19,6 @@ from backend.schemas.media import (
     UploadURLRequest,
     UploadURLResponse,
 )
-from backend.middleware.rate_limit import limiter
 from backend.services.media_manager import generate_storage_key, validate_content_type
 from backend.storage.r2 import R2Client
 

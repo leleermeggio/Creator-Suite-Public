@@ -9,15 +9,24 @@ import tempfile
 
 import httpx
 from deep_translator import GoogleTranslator
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 from backend.auth.dependencies import get_current_user
 from backend.config import get_settings
-from backend.models.user import User
 from backend.middleware.rate_limit import limiter
+from backend.models.user import User
 from backend.utils.url_safety import assert_safe_url
 
 logger = logging.getLogger(__name__)
