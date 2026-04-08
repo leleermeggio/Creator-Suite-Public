@@ -228,40 +228,8 @@ async def execute_step(
     await db.commit()
     await db.refresh(mission)
 
-    # ── Inline dispatch: run the tool and auto-complete ──────────────────
-    from backend.services.step_executor import build_step_context, dispatch_step
-
-    previous_outputs = [
-        {
-            "tool_id": steps[sr["step_index"]].get("tool_id", ""),
-            "output": sr.get("output", {}),
-        }
-        for sr in step_results
-        if sr.get("status") == "COMPLETED" and sr.get("output")
-    ]
-
-    ctx = build_step_context(
-        project_id=mission.project_id,
-        user_id=user_id,
-        media_path=None,
-        previous_outputs=previous_outputs,
-    )
-
-    try:
-        output = await dispatch_step(
-            tool_id=tool_id,
-            parameters=step_def.get("parameters", {}),
-            context=ctx,
-        )
-    except Exception as exc:
-        logger.error("❌ dispatch_step raised for step %d: %s", step_index, exc)
-        output = {"error": str(exc)}
-
-    # If the tool returned an error, mark FAILED; otherwise COMPLETED
-    if output.get("error"):
-        logger.warning("⚠️ Step %d returned error: %s", step_index, output["error"])
-
-    mission = await complete_step(db, mission_id, step_index, user_id, output)
+    # Step is now RUNNING with job_id queued.
+    # Actual execution happens via the Celery worker that picks up the job.
     return mission
 
 
