@@ -1,0 +1,11 @@
+python-telegram-bot>=22.0
+python-dotenv
+yt-dlp
+openai-whisper
+torch
+deep-translator
+httpx
+instaloader
+edge-tts
+google-generativeai
+Pillow

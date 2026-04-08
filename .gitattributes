@@ -1,0 +1,20 @@
+# Normalize line endings to LF in the repository, checkout as-is on Windows
+* text=auto eol=lf
+
+# Force binary — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.svg text eol=lf
+*.db binary
+*.sqlite3 binary
+*.pem binary
+*.key binary
+
+# Windows scripts — keep CRLF on checkout
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

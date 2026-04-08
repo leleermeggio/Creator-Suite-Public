@@ -1,0 +1,39 @@
+# Replace YOUR_SUBDOMAIN with your actual DuckDNS name (e.g. creatorzone)
+# Full domain: creatorzone.duckdns.org
+
+api.{$DUCKDNS_DOMAIN} {
+    reverse_proxy api:8000
+
+    tls {
+        dns duckdns {$DUCKDNS_TOKEN}
+    }
+
+    header {
+        # Remove Caddy's "Server" header
+        -Server
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+app.{$DUCKDNS_DOMAIN} {
+    reverse_proxy frontend:8081
+
+    tls {
+        dns duckdns {$DUCKDNS_TOKEN}
+    }
+
+    header {
+        -Server
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}

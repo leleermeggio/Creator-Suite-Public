@@ -1,0 +1,118 @@
+import { Template } from '@/types';
+
+export const BUILT_IN_TEMPLATES: Template[] = [
+  {
+    id: 'youtuber',
+    name: 'YouTuber',
+    icon: '🎬',
+    description: 'Workflow completo per video YouTube: registra, taglia, edita e pubblica',
+    creatorType: 'YouTuber',
+    builtIn: true,
+    defaultPhases: [
+      {
+        name: 'Registra',
+        icon: '🎬',
+        color: '#FF6B35',
+        order: 0,
+        suggestedToolIds: [],
+      },
+      {
+        name: 'Taglia',
+        icon: '✂️',
+        color: '#FF2D78',
+        order: 1,
+        suggestedToolIds: ['jumpcut', 'transcribe'],
+      },
+      {
+        name: 'Edita',
+        icon: '✨',
+        color: '#8B5CF6',
+        order: 2,
+        suggestedToolIds: ['ai-image', 'convert', 'tts'],
+      },
+      {
+        name: 'Pubblica',
+        icon: '🚀',
+        color: '#ADFF2F',
+        order: 3,
+        suggestedToolIds: ['ai-image', 'convert'],
+      },
+    ],
+  },
+  {
+    id: 'podcaster',
+    name: 'Podcaster',
+    icon: '🎙️',
+    description: 'Workflow per podcast: registra, trascrivi, taglia ed esporta',
+    creatorType: 'Podcaster',
+    builtIn: true,
+    defaultPhases: [
+      {
+        name: 'Registra',
+        icon: '🎙️',
+        color: '#FF6B35',
+        order: 0,
+        suggestedToolIds: [],
+      },
+      {
+        name: 'Trascrivi',
+        icon: '📝',
+        color: '#FF2D78',
+        order: 1,
+        suggestedToolIds: ['transcribe', 'translate'],
+      },
+      {
+        name: 'Taglia',
+        icon: '✂️',
+        color: '#8B5CF6',
+        order: 2,
+        suggestedToolIds: ['jumpcut'],
+      },
+      {
+        name: 'Export',
+        icon: '📦',
+        color: '#ADFF2F',
+        order: 3,
+        suggestedToolIds: ['convert', 'tts'],
+      },
+    ],
+  },
+  {
+    id: 'content-creator',
+    name: 'Content Creator',
+    icon: '📱',
+    description: 'Workflow per content creator: idea, registra, edita e posta su tutti i social',
+    creatorType: 'Content Creator',
+    builtIn: true,
+    defaultPhases: [
+      {
+        name: 'Idea',
+        icon: '💡',
+        color: '#FF6B35',
+        order: 0,
+        suggestedToolIds: ['summarize', 'download'],
+      },
+      {
+        name: 'Registra',
+        icon: '🎬',
+        color: '#FF2D78',
+        order: 1,
+        suggestedToolIds: [],
+      },
+      {
+        name: 'Short Edit',
+        icon: '✂️',
+        color: '#8B5CF6',
+        order: 2,
+        suggestedToolIds: ['jumpcut', 'ai-image'],
+      },
+      {
+        name: 'Multi-post',
+        icon: '📱',
+        color: '#ADFF2F',
+        order: 3,
+        suggestedToolIds: ['convert', 'ai-image'],
+      },
+    ],
+  },
+];

@@ -1,0 +1,55 @@
+# .github/workflows/backend-ci.yml
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint
+        run: ruff check backend/
+      - name: Format check
+        run: ruff format --check backend/
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: cd backend && pip install -r requirements.txt
+      - name: Generate test RS256 keys
+        run: |
+          python -c "
+          from cryptography.hazmat.primitives.asymmetric import rsa
+          from cryptography.hazmat.primitives import serialization
+          from pathlib import Path
+          Path('backend/keys').mkdir(parents=True, exist_ok=True)
+          pk = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+          Path('backend/keys/private.pem').write_bytes(pk.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.TraditionalOpenSSL, serialization.NoEncryption()))
+          Path('backend/keys/public.pem').write_bytes(pk.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
+          "
+      - name: Run tests
+        env:
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          REDIS_URL: "redis://localhost:6379/0"
+          JWT_PRIVATE_KEY_PATH: "keys/private.pem"
+          JWT_PUBLIC_KEY_PATH: "keys/public.pem"
+        run: python -m pytest backend/tests/ -v --tb=short --cov=backend --cov-report=term-missing

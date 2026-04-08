@@ -1,0 +1,115 @@
+# ── Secrets & environment ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.production.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.production.example
+*.pem
+*.key
+*.p12
+*.p8
+*.jks
+*.mobileprovision
+backend/keys/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── Database ──────────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ── Node / Expo ───────────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.expo/
+frontend/web-build/
+.expo-shared/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.metro-health-check*
+
+# ── Logs, temp & generated media ─────────────────────────────────────────────
+logs/
+*.log
+downloads/
+audio/
+tmp/
+temp/
+*.tmp
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ── Claude / AI tooling ─────────────────────────────────────────────────────
+CLAUDE.local.md
+.claude/settings.json
+.claude/settings.local.json
+.claude/NEXT_SESSION_CONTEXT.md
+.claude/ollama-local.ps1
+.claude/shared/
+.claude/agents/local-*.md
+.claude/agents/planner.md
+.superpowers/
+
+# ── Windsurf ──────────────────────────────────────────────────────────────────
+.windsurf/tasks/
+
+# ── OpenClaw / local LLM tooling ─────────────────────────────────────────────
+scripts/sessions/
+scripts/run-all-sessions.ps1
+docs/OPENCLAW-IMPROVEMENT-SESSIONS.md
+docs/LOCAL-LLM-*.md
+
+# ── AI chat logs & scratch files ──────────────────────────────────────────────
+2026-*.txt
+claude-project-structure/
+
+# ── Backup & generated files ─────────────────────────────────────────────────
+*.bak
+*.orig
+*.local
+showcase.html
+
+# ── Network share junction (avoid duplicate tracking) ─────────────────────────
+LA-BASE/
+
+# ── Misc build artifacts ──────────────────────────────────────────────────────
+.worktrees/

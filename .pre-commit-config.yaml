@@ -1,0 +1,11 @@
+# See https://pre-commit.com for more information
+# Install: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.4
+    hooks:
+      - id: ruff          # linter
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format   # formatter
+        files: ^backend/

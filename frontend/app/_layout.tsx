@@ -1,0 +1,157 @@
+import 'react-native-gesture-handler';
+import React, { useEffect } from 'react';
+import { View, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import {
+  useFonts,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { COLORS } from '@/constants/theme';
+import { AuthProvider, useAuthContext } from '@/context/AuthContext';
+import { ThemeProvider, useThemeContext } from '@/context/ThemeContext';
+
+function ThemedStatusBar() {
+  const { isDark } = useThemeContext();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
+
+function ThemedStack() {
+  const { palette } = useThemeContext();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: palette.bg },
+        animation: 'fade',
+      }}
+    >
+      <Stack.Screen name="login" options={{ animation: 'fade' }} />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="tool/[id]" />
+      <Stack.Screen name="project/[id]" />
+      <Stack.Screen name="new-project/index" />
+      <Stack.Screen name="new-project/ai-setup" />
+      <Stack.Screen name="new-project/customize" />
+      <Stack.Screen name="agent/[id]" />
+      <Stack.Screen name="agent/new" />
+      <Stack.Screen name="mission/[id]" />
+    </Stack>
+  );
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn, loading } = useAuthContext();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+    const inLogin = segments[0] === 'login';
+    if (!isLoggedIn && !inLogin) {
+      router.replace('/login');
+    } else if (isLoggedIn && inLogin) {
+      router.replace('/(tabs)');
+    }
+  }, [isLoggedIn, loading, segments]);
+
+  return <>{children}</>;
+}
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: COLORS.bg }} />;
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <AuthProvider>
+          <AuthGate>
+            <ThemedStatusBar />
+            {Platform.OS === 'web' && <WebGlobalStyles />}
+            <ThemedStack />
+          </AuthGate>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+function WebGlobalStyles() {
+  const { palette } = useThemeContext();
+  if (Platform.OS !== 'web') return null;
+
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          html, body, #root {
+            height: 100%;
+            background: ${palette.bg};
+            overflow-x: hidden;
+          }
+          body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+          /* Scrollbar styling */
+          ::-webkit-scrollbar { width: 6px; }
+          ::-webkit-scrollbar-track { background: transparent; }
+          ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+          }
+          ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+          /* Card entrance animation */
+          @keyframes cardAppear {
+            0% {
+              opacity: 0;
+              transform: translateY(30px) scale(0.95);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+          @keyframes slideUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes pulseGlow {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+          }
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+        `,
+      }}
+    />
+  );
+}

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Creator Zone",
+    "slug": "creator-zone-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "creatorzone",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0F"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.creatorzone.app"
+    },
+    "android": {
+      "package": "com.creatorzone.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0F",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
+    ]
+  }
+}

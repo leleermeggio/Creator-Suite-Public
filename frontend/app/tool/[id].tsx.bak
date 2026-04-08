@@ -1,0 +1,483 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Animated,
+  Platform,
+  TextInput,
+  useWindowDimensions,
+  Pressable,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CosmicBackground } from '@/components/CosmicBackground';
+import { GlowCard } from '@/components/GlowCard';
+import { GradientText } from '@/components/GradientText';
+import { NeonButton } from '@/components/NeonButton';
+import { TOOLS } from '@/constants/tools';
+import {
+  COLORS,
+  SPACING,
+  TYPO,
+  FONTS,
+  RADIUS,
+  SHADOWS,
+} from '@/constants/theme';
+
+// Contextual hints per tool
+const TOOL_HINTS: Record<string, { placeholder: string; inputType: 'text' | 'file' | 'url'; features: string[] }> = {
+  transcribe: {
+    placeholder: 'Invia un file audio o video...',
+    inputType: 'file',
+    features: ['Whisper AI', 'Multi-lingua', 'Alta precisione', 'Formato SRT'],
+  },
+  translate: {
+    placeholder: 'Scrivi il testo da tradurre...',
+    inputType: 'text',
+    features: ['100+ lingue', 'Rilevamento auto', 'Testi lunghi', 'Veloce'],
+  },
+  download: {
+    placeholder: 'Incolla URL del video o audio...',
+    inputType: 'url',
+    features: ['YouTube', 'Instagram', 'MP3 / MP4', 'Alta qualità'],
+  },
+  summarize: {
+    placeholder: 'Incolla il testo da riassumere...',
+    inputType: 'text',
+    features: ['Gemini AI', 'Bullet points', 'Personalizzabile', 'Multi-formato'],
+  },
+  ocr: {
+    placeholder: 'Invia un\'immagine con testo...',
+    inputType: 'file',
+    features: ['Multi-lingua', 'PDF support', 'Handwriting', 'Alta precisione'],
+  },
+  tts: {
+    placeholder: 'Scrivi il testo da convertire in audio...',
+    inputType: 'text',
+    features: ['Voci naturali', 'Multi-lingua', 'Edge TTS', 'Download MP3'],
+  },
+  convert: {
+    placeholder: 'Invia il file da convertire...',
+    inputType: 'file',
+    features: ['Audio → Audio', 'Video → Video', 'FFmpeg', '20+ formati'],
+  },
+  jumpcut: {
+    placeholder: 'Invia un video con silenzi...',
+    inputType: 'file',
+    features: ['Auto-detect', 'Threshold config', 'Preview', 'Export'],
+  },
+};
+
+export default function ToolScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const [inputText, setInputText] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const tool = TOOLS.find((t) => t.id === id);
+  const hints = TOOL_HINTS[id ?? ''];
+
+  const isDesktop = width >= 1024;
+  const contentMaxWidth = isDesktop ? 720 : undefined;
+  const horizontalPad = isDesktop ? 48 : 20;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  if (!tool || !hints) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: COLORS.textPrimary }}>Tool not found</Text>
+      </View>
+    );
+  }
+
+  const handleProcess = () => {
+    setIsProcessing(true);
+    // Simulate processing
+    setTimeout(() => setIsProcessing(false), 2500);
+  };
+
+  return (
+    <View style={styles.container}>
+      <CosmicBackground />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingHorizontal: horizontalPad,
+            maxWidth: contentMaxWidth,
+            alignSelf: isDesktop ? 'center' : undefined,
+            width: isDesktop ? '100%' : undefined,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back button */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [
+              styles.backBtn,
+              { opacity: pressed ? 0.6 : 1 },
+              Platform.OS === 'web' && { cursor: 'pointer' as any },
+            ]}
+          >
+            <Text style={styles.backArrow}>←</Text>
+            <Text style={styles.backText}>Menu</Text>
+          </Pressable>
+        </Animated.View>
+
+        {/* Tool header */}
+        <Animated.View
+          style={[
+            styles.toolHeader,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={tool.gradient as unknown as string[]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.iconLarge}
+          >
+            <Text style={styles.iconEmoji}>{tool.icon}</Text>
+          </LinearGradient>
+
+          <GradientText gradient={tool.gradient} style={TYPO.h1}>
+            {tool.name}
+          </GradientText>
+
+          <Text style={styles.toolDescription}>{tool.description}</Text>
+        </Animated.View>
+
+        {/* Features pills */}
+        <Animated.View
+          style={[
+            styles.featureRow,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {hints.features.map((f, i) => (
+            <View
+              key={i}
+              style={[
+                styles.featurePill,
+                {
+                  borderColor: tool.accentColor + '33',
+                  ...(Platform.OS === 'web'
+                    ? {
+                        // @ts-ignore
+                        animationName: 'slideUp',
+                        animationDuration: '0.5s',
+                        animationFillMode: 'both',
+                        animationDelay: `${0.2 + i * 0.1}s`,
+                      }
+                    : {}),
+                },
+              ]}
+            >
+              <Text style={[styles.featureText, { color: tool.accentColor }]}>
+                {f}
+              </Text>
+            </View>
+          ))}
+        </Animated.View>
+
+        {/* Input area */}
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
+        >
+          <GlowCard gradient={tool.gradient} glowIntensity={0.2}>
+            {hints.inputType === 'text' || hints.inputType === 'url' ? (
+              <TextInput
+                style={styles.textInput}
+                placeholder={hints.placeholder}
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                value={inputText}
+                onChangeText={setInputText}
+                numberOfLines={5}
+              />
+            ) : (
+              <Pressable
+                style={styles.fileDropZone}
+                onPress={() => {}}
+              >
+                <LinearGradient
+                  colors={[tool.accentColor + '15', 'transparent']}
+                  style={styles.fileDropGradient}
+                >
+                  <Text style={styles.fileDropIcon}>📁</Text>
+                  <Text style={styles.fileDropText}>{hints.placeholder}</Text>
+                  <Text style={styles.fileDropHint}>
+                    Tocca per selezionare o trascina qui
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            )}
+          </GlowCard>
+        </Animated.View>
+
+        {/* Process button */}
+        <Animated.View
+          style={[
+            styles.buttonContainer,
+            { opacity: fadeAnim },
+          ]}
+        >
+          <NeonButton
+            label={isProcessing ? '⏳ Elaborazione...' : `▶ Avvia ${tool.name}`}
+            onPress={handleProcess}
+            gradient={tool.gradient}
+            size="lg"
+          />
+        </Animated.View>
+
+        {/* Processing animation */}
+        {isProcessing && (
+          <View style={styles.processingContainer}>
+            <GlowCard gradient={tool.gradient} glowIntensity={0.6}>
+              <View style={styles.processingContent}>
+                <View
+                  style={[
+                    styles.processingSpinner,
+                    Platform.OS === 'web' && {
+                      // @ts-ignore
+                      animation: 'pulseGlow 1.5s ease-in-out infinite',
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={tool.gradient as unknown as string[]}
+                    style={styles.spinnerGradient}
+                  />
+                </View>
+                <Text style={styles.processingText}>
+                  Elaborazione in corso...
+                </Text>
+                <Text style={styles.processingSubtext}>
+                  Il risultato apparirà qui sotto
+                </Text>
+              </View>
+            </GlowCard>
+          </View>
+        )}
+
+        {/* Result placeholder */}
+        <View style={styles.resultSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>RISULTATO</Text>
+            <View style={styles.sectionLine} />
+          </View>
+          <View style={styles.resultPlaceholder}>
+            <Text style={styles.resultPlaceholderIcon}>💬</Text>
+            <Text style={styles.resultPlaceholderText}>
+              Il risultato dell'elaborazione apparirà qui
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingTop: Platform.select({ web: 40, default: 60 }),
+    paddingBottom: 60,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xl,
+    alignSelf: 'flex-start',
+    paddingVertical: SPACING.sm,
+    paddingRight: SPACING.md,
+  },
+  backArrow: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 20,
+    color: COLORS.textSecondary,
+  },
+  backText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  toolHeader: {
+    marginBottom: SPACING.xl,
+    gap: SPACING.md,
+  },
+  iconLarge: {
+    width: 72,
+    height: 72,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  iconEmoji: {
+    fontSize: 36,
+  },
+  toolDescription: {
+    ...TYPO.body,
+    color: COLORS.textSecondary,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xl,
+  },
+  featurePill: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  featureText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  textInput: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
+  },
+  fileDropZone: {
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+  },
+  fileDropGradient: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xxl,
+    gap: SPACING.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: RADIUS.md,
+  },
+  fileDropIcon: {
+    fontSize: 42,
+  },
+  fileDropText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  fileDropHint: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  buttonContainer: {
+    marginTop: SPACING.xl,
+    alignItems: 'center',
+  },
+  processingContainer: {
+    marginTop: SPACING.xl,
+  },
+  processingContent: {
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.lg,
+  },
+  processingSpinner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  spinnerGradient: {
+    flex: 1,
+  },
+  processingText: {
+    ...TYPO.h3,
+    color: COLORS.textPrimary,
+  },
+  processingSubtext: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 13,
+    color: COLORS.textMuted,
+  },
+  resultSection: {
+    marginTop: SPACING.xxl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  sectionTitle: {
+    ...TYPO.label,
+    color: COLORS.textMuted,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  resultPlaceholder: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+    gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: RADIUS.lg,
+    borderStyle: 'dashed',
+  },
+  resultPlaceholderIcon: {
+    fontSize: 32,
+    opacity: 0.5,
+  },
+  resultPlaceholderText: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+});

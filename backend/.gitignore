@@ -1,0 +1,7 @@
+keys/
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+!.env.production.example
