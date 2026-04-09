@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,9 +16,9 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 class ReviewCreate(BaseModel):
-    project_id: str
+    project_id: str = Field(min_length=1)
     export_id: str | None = None
-    reviewer_id: str
+    reviewer_id: str = Field(min_length=1)
     notes: str | None = None
 
 
