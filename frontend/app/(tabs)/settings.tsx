@@ -11,15 +11,18 @@ import {
   useWindowDimensions,
   Linking,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { AnimatedScreen } from '@/components/animated';
 import { useRouter } from 'expo-router';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { GlowCard } from '@/components/GlowCard';
 import { GradientText } from '@/components/GradientText';
+import { Avatar } from '@/components/Avatar';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuthContext } from '@/context/AuthContext';
 import { AI_PROVIDERS } from '@/types';
 import type { AiProvider } from '@/types';
+import * as authApi from '@/services/authApi';
 import {
   COLORS,
   SPACING,
@@ -89,9 +92,47 @@ export default function SettingsScreen() {
   const { width } = useWindowDimensions();
   const { settings, update } = useSettings();
   const [apiKeyInput, setApiKeyInput] = useState('');
-  const { logout } = useAuthContext();
+  const { user, logout, updateProfile } = useAuthContext();
   const router = useRouter();
   const isDesktop = width >= 1024;
+
+  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const imageUri = result.assets[0].uri;
+    setLocalAvatarUri(imageUri);
+    setUploadingAvatar(true);
+    try {
+      const updated = await authApi.uploadAvatar(imageUri);
+      await updateProfile({ avatar_url: updated.avatar_url ?? undefined });
+    } catch {
+      setLocalAvatarUri(null);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    setEditingName(false);
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === user?.display_name) return;
+    try {
+      await updateProfile({ display_name: trimmed });
+    } catch {
+      setNameInput(user?.display_name ?? '');
+    }
+  };
   const horizontalPad = isDesktop ? 48 : 20;
   const contentMaxWidth = isDesktop ? 640 : undefined;
 
@@ -153,6 +194,61 @@ export default function SettingsScreen() {
           <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
             Personalizza la tua esperienza
           </Text>
+        </View>
+
+        {/* PROFILO */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>PROFILO</Text>
+          <GlowCard gradient={COLORS.gradAurora} glowIntensity={0.15} borderWidth={1}>
+            <View style={styles.profileRow}>
+              <Pressable
+                onPress={handlePickAvatar}
+                style={styles.avatarWrap}
+                disabled={uploadingAvatar}
+              >
+                <Avatar
+                  uri={localAvatarUri ?? user?.avatar_url}
+                  displayName={user?.display_name ?? '?'}
+                  size={72}
+                  glowColor={COLORS.neonCyan}
+                />
+                <View style={styles.avatarEditBadge}>
+                  <Text style={styles.avatarEditIcon}>{uploadingAvatar ? '⏳' : '📷'}</Text>
+                </View>
+              </Pressable>
+
+              <View style={styles.profileInfo}>
+                {editingName ? (
+                  <TextInput
+                    style={[styles.nameEditInput, { color: palette.text, borderColor: palette.borderActive }]}
+                    value={nameInput}
+                    onChangeText={setNameInput}
+                    onBlur={handleSaveName}
+                    onSubmitEditing={handleSaveName}
+                    autoFocus
+                    returnKeyType="done"
+                    autoCapitalize="words"
+                  />
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      setNameInput(user?.display_name ?? '');
+                      setEditingName(true);
+                    }}
+                    style={styles.nameRow}
+                  >
+                    <Text style={[styles.profileName, { color: palette.text }]} numberOfLines={1}>
+                      {user?.display_name ?? '—'}
+                    </Text>
+                    <Text style={[styles.nameEditIcon, { color: palette.textMuted }]}>✎</Text>
+                  </Pressable>
+                )}
+                <Text style={[styles.profileEmail, { color: palette.textMuted }]} numberOfLines={1}>
+                  {user?.email ?? '—'}
+                </Text>
+              </View>
+            </View>
+          </GlowCard>
         </View>
 
         {/* AI Provider section */}
@@ -560,5 +656,58 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.neonPink,
     letterSpacing: 0.5,
+  },
+  profileRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+  },
+  avatarWrap: {
+    position: 'relative' as const,
+  },
+  avatarEditBadge: {
+    position: 'absolute' as const,
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.bgElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(0,245,255,0.3)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  avatarEditIcon: {
+    fontSize: 12,
+  },
+  profileInfo: {
+    flex: 1,
+    gap: SPACING.xs,
+  },
+  nameRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  profileName: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  nameEditIcon: {
+    fontSize: 14,
+  },
+  nameEditInput: {
+    fontFamily: FONTS.displayBold,
+    fontSize: 18,
+    borderBottomWidth: 1.5,
+    paddingVertical: 2,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
+  },
+  profileEmail: {
+    fontFamily: FONTS.bodyRegular,
+    fontSize: 13,
   },
 });
