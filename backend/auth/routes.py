@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import anyio
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -116,6 +117,21 @@ _MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
 _AVATARS_DIR = Path(__file__).resolve().parent.parent / "static" / "avatars"
 _EXT_MAP = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
+_MAGIC_BYTES: dict[bytes, str] = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG": "image/png",
+}
+_WEBP_SIG = (b"RIFF", b"WEBP")
+
+
+def _validate_magic(data: bytes, content_type: str) -> bool:
+    if content_type == "image/webp":
+        return data[:4] == _WEBP_SIG[0] and data[8:12] == _WEBP_SIG[1]
+    for magic, ctype in _MAGIC_BYTES.items():
+        if ctype == content_type and data[: len(magic)] == magic:
+            return True
+    return False
+
 
 @router.post("/avatar", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def upload_avatar(
@@ -132,10 +148,22 @@ async def upload_avatar(
     if len(data) > _MAX_AVATAR_BYTES:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
 
+    if not _validate_magic(data, file.content_type):
+        raise HTTPException(
+            status_code=422,
+            detail="File content does not match declared content type.",
+        )
+
     ext = _EXT_MAP[file.content_type]
-    _AVATARS_DIR.mkdir(parents=True, exist_ok=True)
     dest = _AVATARS_DIR / f"{user.id}.{ext}"
-    dest.write_bytes(data)
+
+    def _write_avatar() -> None:
+        _AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+        for old in _AVATARS_DIR.glob(f"{user.id}.*"):
+            old.unlink(missing_ok=True)
+        dest.write_bytes(data)
+
+    await anyio.to_thread.run_sync(_write_avatar)
 
     user.avatar_url = f"/static/avatars/{user.id}.{ext}"
     await db.commit()

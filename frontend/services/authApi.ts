@@ -58,6 +58,7 @@ export async function updateMe(patch: { display_name?: string }): Promise<UserPr
 
 export async function uploadAvatar(imageUri: string): Promise<UserProfile> {
   const token = await AsyncStorage.getItem('auth_access_token');
+  if (!token) throw new ApiError(401, 'Not authenticated');
   const filename = imageUri.split('/').pop() ?? 'avatar.jpg';
   const ext = (filename.split('.').pop() ?? 'jpg').toLowerCase();
   const mimeMap: Record<string, string> = {
@@ -73,7 +74,7 @@ export async function uploadAvatar(imageUri: string): Promise<UserProfile> {
 
   const res = await fetch(`${API_BASE}/auth/avatar`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token ?? ''}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
 
