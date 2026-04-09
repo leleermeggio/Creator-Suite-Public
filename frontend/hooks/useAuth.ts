@@ -38,18 +38,26 @@ export function useAuth(): AuthState {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await authApi.login(email, password);
-    await AsyncStorage.multiSet([
-      [TOKEN_KEY, data.access_token],
-      [REFRESH_KEY, data.refresh_token],
-    ]);
-    const profile = await authApi.getMe();
-    setUser(profile);
+    try {
+      const data = await authApi.login(email, password);
+      await AsyncStorage.multiSet([
+        [TOKEN_KEY, data.access_token],
+        [REFRESH_KEY, data.refresh_token],
+      ]);
+      const profile = await authApi.getMe();
+      setUser(profile);
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Login failed');
+    }
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
-    setUser(null);
+    try {
+      await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
+      setUser(null);
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Logout failed');
+    }
   }, []);
 
   return {

@@ -1,4 +1,5 @@
 import { post } from './apiClient';
+import type { ApiError } from './apiClient';
 
 const BASE_URL = 'https://image.pollinations.ai/prompt';
 
@@ -28,15 +29,27 @@ export function buildImageUrl(
   return `${BASE_URL}/${fullPrompt}?width=${width}&height=${height}&nologo=true&seed=${Date.now()}`;
 }
 
+export interface GenerateImageOptions {
+  prompt: string;
+  mode: string;
+  width: number;
+  height: number;
+  timeoutMs?: number; // Default: 30 seconds
+}
+
 export async function generateImage(
-  prompt: string,
-  mode: string,
-  width: number,
-  height: number,
+  options: GenerateImageOptions,
 ): Promise<string> {
-  // Pollinations generates the image on GET request (not HEAD).
-  // Return the URL directly — the Image component will trigger generation on load.
-  return buildImageUrl(prompt, mode, width, height);
+  const { prompt, mode, width, height, timeoutMs = 30000 } = options;
+  
+  try {
+    // Pollinations generates the image on GET request (not HEAD).
+    // Return the URL directly — the Image component will trigger generation on load.
+    return buildImageUrl(prompt, mode, width, height);
+  } catch (error: any) {
+    const message = error?.message ?? 'Failed to generate image';
+    throw new Error(`Image generation error: ${message}`);
+  }
 }
 
 export interface ThumbnailResponse {
@@ -58,10 +71,16 @@ export async function generateImageViaBE(
   return thumb.download_url ?? thumb.storage_key ?? '';
 }
 
+export interface GenerateAllSocialFormatsOptions {
+  prompt: string;
+  onProgress?: (current: number, total: number, label: string) => void;
+  onError?: (format: string, error: Error) => void;
+}
+
 export async function generateAllSocialFormats(
-  prompt: string,
-  onProgress?: (current: number, total: number, label: string) => void,
+  options: GenerateAllSocialFormatsOptions,
 ): Promise<Map<string, string | null>> {
+  const { prompt, onProgress, onError } = options;
   const results = new Map<string, string | null>();
   const formats = Object.entries(SOCIAL_FORMATS);
   const total = formats.length;
@@ -71,9 +90,11 @@ export async function generateAllSocialFormats(
     onProgress?.(i + 1, total, label);
 
     try {
-      const url = await generateImage(prompt, 'social-cover', width, height);
+      const url = await generateImage({ prompt, mode: 'social-cover', width, height });
       results.set(key, url);
-    } catch {
+    } catch (error: ApiError) {
+      console.error(`Error generating format ${key}:`, error);
+      onError?.(key, error as Error);
       results.set(key, null);
     }
   }

@@ -29,6 +29,7 @@ interface RequestOptions {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   skipAuth?: boolean;
+  timeoutMs?: number; // Default: 30000 (30 seconds)
 }
 
 async function tryRefreshToken(): Promise<string | null> {
@@ -49,12 +50,22 @@ async function tryRefreshToken(): Promise<string | null> {
   return data.access_token as string;
 }
 
+// Check if device is online before making requests
+function checkOnlineStatus(): void {
+  if (!navigator.onLine) {
+    throw new ApiError(0, 'No internet connection. Check your network.');
+  }
+}
+
 export async function apiRequest<T>(
   method: string,
   path: string,
   body?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
+  // Check online status before request
+  checkOnlineStatus();
+
   const token = options?.skipAuth
     ? null
     : await AsyncStorage.getItem('auth_access_token');
@@ -68,42 +79,60 @@ export async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined,
-    signal: options?.signal,
-  });
+  // Create AbortController for timeout
+  const timeoutMs = options?.timeoutMs ?? 30000; // Default 30 seconds
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
 
-  // On 401 attempt a single token refresh and retry
-  if (res.status === 401 && !options?.skipAuth) {
-    const newToken = await tryRefreshToken();
-    if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      res = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers,
-        body: body != null ? JSON.stringify(body) : undefined,
-        signal: options?.signal,
-      });
+  try {
+    let res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+      signal: options?.signal ?? abortController.signal,
+    });
+
+    // On 401 attempt a single token refresh and retry
+    if (res.status === 401 && !options?.skipAuth) {
+      const newToken = await tryRefreshToken();
+      if (newToken) {
+        headers['Authorization'] = `Bearer ${newToken}`;
+        res = await fetch(`${API_BASE}${path}`, {
+          method,
+          headers,
+          body: body != null ? JSON.stringify(body) : undefined,
+          signal: options?.signal ?? abortController.signal,
+        });
+      }
     }
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const raw = data?.detail ?? data?.message ?? res.statusText;
+      const message = Array.isArray(raw)
+        ? raw.map((e: any) => e?.msg ?? String(e)).join(', ')
+        : typeof raw === 'string'
+          ? raw
+          : String(raw);
+      throw new ApiError(res.status, message);
+    }
+
+    // Handle 204 No Content
+    if (res.status === 204) return undefined as unknown as T;
+
+    clearTimeout(timeoutId);
+    return res.json() as Promise<T>;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    // Check for timeout error
+    if (error?.name === 'AbortError') {
+      throw new ApiError(408, `Request timed out after ${timeoutMs / 1000} seconds. Please try again.`);
+    }
+    
+    // Re-throw other errors
+    throw error;
   }
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    const raw = data?.detail ?? data?.message ?? res.statusText;
-    const message = Array.isArray(raw)
-      ? raw.map((e: any) => e?.msg ?? String(e)).join(', ')
-      : typeof raw === 'string'
-        ? raw
-        : String(raw);
-    throw new ApiError(res.status, message);
-  }
-
-  // Handle 204 No Content
-  if (res.status === 204) return undefined as unknown as T;
-
-  return res.json() as Promise<T>;
 }
 
 export function get<T>(path: string, options?: RequestOptions): Promise<T> {

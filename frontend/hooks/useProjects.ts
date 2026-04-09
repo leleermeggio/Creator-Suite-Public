@@ -10,6 +10,7 @@ import { deleteProjectFiles } from '@/services/file-system';
 import { createProject as beCreateProject, listProjects } from '@/services/projectsApi';
 import type { Project, ProjectIndexEntry, Phase, PhaseTemplate } from '@/types';
 import { getPhaseColor } from '@/constants/phases';
+import type { ApiError } from '@/services/apiClient';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -19,13 +20,22 @@ export function useProjects() {
   const [projects, setProjects] = useState<ProjectIndexEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    const index = await getProjectIndex();
-    setProjects(index);
-    setLoading(false);
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      const index = await getProjectIndex();
+      setProjects(index);
+    } catch (error: any) {
+      console.error('Error loading projects:', error);
+      // Show user-friendly error via toast or alert
+      if (__DEV__) {
+        console.warn(`Failed to load projects: ${error?.message ?? 'Unknown'}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const syncWithBackend = useCallback(async () => {
+  const syncWithBackend = useCallback(async (): Promise<void> => {
     try {
       const [beProjects, localIndex] = await Promise.all([
         listProjects(),
@@ -54,15 +64,19 @@ export function useProjects() {
         if (!beIds.has(local.id)) {
           try {
             await beCreateProject(local.name);
-          } catch {
+          } catch (error: ApiError) {
             // best-effort — project may already exist or BE unreachable
+            if (__DEV__) console.warn('Backend sync failed:', error.message);
           }
         }
       }
 
       await refresh();
-    } catch {
+    } catch (error: any) {
       // offline or unauthenticated — silently skip
+      if (__DEV__) {
+        console.debug('Backend sync skipped (offline/unauth):', error?.message);
+      }
     }
   }, [refresh]);
 
@@ -84,7 +98,10 @@ export function useProjects() {
       try {
         const beProject = await beCreateProject(name, description);
         projectId = beProject.id;
-      } catch {
+      } catch (error: unknown) {
+        // Fallback to local-only creation if backend unavailable
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Backend create failed, using local ID:', errorMsg);
         projectId = generateId();
       }
 
@@ -111,10 +128,15 @@ export function useProjects() {
         updatedAt: new Date().toISOString(),
       };
 
-      await ensureProjectDirs(projectId, phases.map(p => p.id));
-      await saveProject(project);
-      await refresh();
-      return projectId;
+      try {
+        await ensureProjectDirs(projectId, phases.map(p => p.id));
+        await saveProject(project);
+        await refresh();
+        return projectId;
+      } catch (error: unknown) {
+        console.error('Error creating project:', error);
+        throw new Error(error instanceof Error ? error.message : 'Error creating project');
+      }
     },
     [refresh],
   );

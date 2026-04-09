@@ -1,44 +1,5 @@
 import { post } from './apiClient';
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
-
-async function geminiRequest(
-  apiKey: string,
-  model: string,
-  contents: any[],
-  systemInstruction?: string,
-): Promise<string> {
-  const body: any = { contents };
-  if (systemInstruction) {
-    body.systemInstruction = { parts: [{ text: systemInstruction }] };
-  }
-
-  const res = await fetch(
-    `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    },
-  );
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini API error (${res.status}): ${err}`);
-  }
-
-  const data: GeminiResponse = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty response from Gemini');
-  return text;
-}
-
 export async function summarizeText(
   provider?: string,
   apiKey?: string,
