@@ -98,12 +98,12 @@ async def me(user: User = Depends(get_current_user)):
     return user
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def update_me(
     body: ProfileUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> User:
+):
     if body.display_name is not None:
         user.display_name = body.display_name
     await db.commit()

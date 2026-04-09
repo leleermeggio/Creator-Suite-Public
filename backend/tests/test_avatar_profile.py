@@ -29,6 +29,11 @@ async def test_update_me_display_name(client):
     assert "avatar_url" in data
     assert data["avatar_url"] is None
 
+    # Verify persistence
+    resp2 = await client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert resp2.status_code == 200
+    assert resp2.json()["display_name"] == "New Name"
+
 
 @pytest.mark.asyncio
 async def test_update_me_requires_auth(client):
@@ -59,7 +64,7 @@ async def test_update_me_name_too_long_rejected(client):
 
 
 @pytest.mark.asyncio
-async def test_update_me_null_body_is_noop(client):
+async def test_update_me_empty_body_is_noop(client):
     token = await _register(client, "noop@test.com", "Unchanged")
     resp = await client.put(
         "/auth/me",
