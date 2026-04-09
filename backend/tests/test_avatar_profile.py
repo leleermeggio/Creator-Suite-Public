@@ -73,3 +73,76 @@ async def test_update_me_empty_body_is_noop(client):
     )
     assert resp.status_code == 200
     assert resp.json()["display_name"] == "Unchanged"
+
+
+# ── POST /auth/avatar ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_upload_avatar_jpeg(client):
+    token = await _register(client, "avatar@test.com", "Avatar User")
+    resp = await client.post(
+        "/auth/avatar",
+        files={"file": ("photo.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 20, "image/jpeg")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["avatar_url"] is not None
+    assert data["avatar_url"].startswith("/static/avatars/")
+    assert data["avatar_url"].endswith(".jpg")
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_png(client):
+    token = await _register(client, "avatarpng@test.com", "PNG User")
+    resp = await client.post(
+        "/auth/avatar",
+        files={"file": ("photo.png", b"\x89PNG\r\n" + b"\x00" * 20, "image/png")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["avatar_url"].endswith(".png")
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_wrong_type_rejected(client):
+    token = await _register(client, "wrongtype@test.com")
+    resp = await client.post(
+        "/auth/avatar",
+        files={"file": ("file.txt", b"text content", "text/plain")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_too_large_rejected(client):
+    token = await _register(client, "toolarge@test.com")
+    resp = await client.post(
+        "/auth/avatar",
+        files={"file": ("big.jpg", b"\xff" * (6 * 1024 * 1024), "image/jpeg")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_requires_auth(client):
+    resp = await client.post(
+        "/auth/avatar",
+        files={"file": ("photo.jpg", b"\xff\xd8\xff", "image/jpeg")},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_me_returns_avatar_url(client):
+    token = await _register(client, "mecheck@test.com", "Check User")
+    await client.post(
+        "/auth/avatar",
+        files={"file": ("photo.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 20, "image/jpeg")},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    resp = await client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["avatar_url"] is not None

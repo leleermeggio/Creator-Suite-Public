@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -106,6 +106,38 @@ async def update_me(
 ):
     if body.display_name is not None:
         user.display_name = body.display_name
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
+_AVATARS_DIR = Path(__file__).resolve().parent.parent / "static" / "avatars"
+_EXT_MAP = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+
+
+@router.post("/avatar", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail="Unsupported file type. Use JPEG, PNG, or WebP.",
+        )
+    data = await file.read()
+    if len(data) > _MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
+
+    ext = _EXT_MAP[file.content_type]
+    _AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+    dest = _AVATARS_DIR / f"{user.id}.{ext}"
+    dest.write_bytes(data)
+
+    user.avatar_url = f"/static/avatars/{user.id}.{ext}"
     await db.commit()
     await db.refresh(user)
     return user
