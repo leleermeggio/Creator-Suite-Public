@@ -3,21 +3,23 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   Pressable,
-  Platform,
-  Image,
-  ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SOCIAL_FORMATS, type SocialFormat } from '@/services/pollinations';
 import { post } from '@/services/apiClient';
-import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
+import { COLORS, SPACING, FONTS, RADIUS } from '@/constants/theme';
 import { IMAGE_PROVIDERS, type ImageProvider } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { SOCIAL_FORMATS, type SocialFormat } from '@/services/pollinations';
 
-type Mode = 'thumbnail' | 'logo' | 'social-cover';
+// Sub-components
+import { StyleSelector, Mode, getModeDimensions } from './StyleSelector';
+import { ImagePromptInput } from './ImagePromptInput';
+import { ProviderSelector } from './ProviderSelector';
+import { ImageResult } from './ImageResult';
+import { BatchResults } from './BatchResults';
 
 interface ImageGeneratorUIProps {
   onSave?: (uri: string, filename: string) => void;
@@ -26,33 +28,27 @@ interface ImageGeneratorUIProps {
 
 export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
   const { settings } = useSettings();
+  
+  // State
   const [mode, setMode] = useState<Mode>('thumbnail');
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<ImageProvider>('stable-horde');
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState('');
   const [batchResults, setBatchResults] = useState<Map<SocialFormat, string | null> | null>(null);
-  
-  const selectedProvider = IMAGE_PROVIDERS.find(p => p.id === provider) ?? IMAGE_PROVIDERS[0];
 
-  const MODES: { id: Mode; label: string; icon: string; w: number; h: number }[] = [
-    { id: 'thumbnail', label: 'Thumbnail', icon: '🖼️', w: 1280, h: 720 },
-    { id: 'logo', label: 'Logo', icon: '💎', w: 512, h: 512 },
-    { id: 'social-cover', label: 'Cover Social', icon: '📱', w: 1080, h: 1080 },
-  ];
+  // Get current mode dimensions
+  const currentMode = getModeDimensions(mode);
 
-  const currentMode = MODES.find(m => m.id === mode)!;
-
+  // Generate single image
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
     setImageUri(null);
     setImageError(false);
-    setImageLoading(false);
     try {
       const stylePrefix = mode === 'thumbnail'
         ? 'YouTube thumbnail style, bold text, expressive, high contrast, '
@@ -84,6 +80,7 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
     }
   };
 
+  // Generate all social formats
   const handleGenerateAll = async () => {
     if (!prompt.trim()) return;
     setBatchLoading(true);
@@ -94,7 +91,7 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
 
     for (let i = 0; i < formats.length; i++) {
       const [key, fmt] = formats[i];
-      setBatchProgress(`Generando ${i + 1} di ${formats.length}... ${fmt.label}`);
+      setBatchProgress(`Generating ${i + 1} of ${formats.length}... ${fmt.label}`);
       try {
         const w = fmt.width > 1024 ? 1024 : fmt.width;
         const h = fmt.height > 1024 ? 1024 : fmt.height;
@@ -118,12 +115,14 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
     setBatchProgress('');
   };
 
+  // Save single image
   const handleSave = () => {
     if (!imageUri || !onSave) return;
     const filename = `ai-image-${mode}-${Date.now()}.jpg`;
     onSave(imageUri, filename);
   };
 
+  // Save all batch images
   const handleSaveBatch = () => {
     if (!batchResults || !onSave) return;
     batchResults.forEach((uri, key) => {
@@ -137,71 +136,13 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       {/* Mode selector */}
-      <View style={styles.modeRow}>
-        {MODES.map(m => (
-          <Pressable
-            key={m.id}
-            onPress={() => setMode(m.id)}
-            style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1, flex: 1 }]}
-          >
-            {mode === m.id ? (
-              <LinearGradient
-                colors={['#FF00E5', '#FFE633'] as unknown as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.modeBtn}
-              >
-                <Text style={styles.modeBtnIcon}>{m.icon}</Text>
-                <Text style={[styles.modeBtnLabel, { color: COLORS.bg }]}>{m.label}</Text>
-              </LinearGradient>
-            ) : (
-              <View style={[styles.modeBtn, styles.modeBtnInactive]}>
-                <Text style={styles.modeBtnIcon}>{m.icon}</Text>
-                <Text style={[styles.modeBtnLabel, { color: COLORS.textMuted }]}>{m.label}</Text>
-              </View>
-            )}
-          </Pressable>
-        ))}
-      </View>
+      <StyleSelector mode={mode} setMode={setMode} />
 
       {/* Provider selector */}
-      <View style={styles.providerSection}>
-        <Text style={styles.providerLabel}>Provider Immagini</Text>
-        <View style={styles.providerRow}>
-          {IMAGE_PROVIDERS.map(p => (
-            <Pressable
-              key={p.id}
-              onPress={() => setProvider(p.id)}
-              style={({ pressed }) => [
-                styles.providerCard,
-                provider === p.id && styles.providerCardActive,
-                { opacity: pressed ? 0.8 : 1, flex: 1 },
-              ]}
-            >
-              <Text style={[styles.providerName, provider === p.id && styles.providerNameActive]}>
-                {p.name}
-              </Text>
-              <Text style={styles.providerDesc}>{p.description}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {selectedProvider.requiresKey && !settings.nanobananaApiKey && (
-          <Text style={styles.providerWarning}>
-            ⚠️ Configura API key NanoBanana in Impostazioni
-          </Text>
-        )}
-      </View>
+      <ProviderSelector provider={provider} setProvider={setProvider} />
 
       {/* Prompt input */}
-      <TextInput
-        style={styles.promptInput}
-        placeholder="Descrivi l'immagine che vuoi generare..."
-        placeholderTextColor={COLORS.textMuted}
-        multiline
-        value={prompt}
-        onChangeText={setPrompt}
-        numberOfLines={3}
-      />
+      <ImagePromptInput prompt={prompt} setPrompt={setPrompt} />
 
       {/* Generate buttons */}
       <View style={styles.btnRow}>
@@ -211,14 +152,14 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
           style={({ pressed }) => [{ flex: 1, opacity: pressed || !prompt.trim() ? 0.6 : 1 }]}
         >
           <LinearGradient
-            colors={['#FF00E5', '#FFE633'] as unknown as [string, string]}
+            colors={[COLORS.neonMagenta, COLORS.neonYellow] as unknown as [string, string]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.generateBtn}
           >
             {loading
               ? <ActivityIndicator color={COLORS.bg} size="small" />
-              : <Text style={styles.generateBtnText}>🎨 Genera</Text>
+              : <Text style={styles.generateBtnText}>🎨 Generate</Text>
             }
           </LinearGradient>
         </Pressable>
@@ -232,101 +173,36 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
             <View style={styles.allFormatsBtn}>
               {batchLoading
                 ? <ActivityIndicator color={COLORS.neonMagenta} size="small" />
-                : <Text style={styles.allFormatsBtnText}>📱 Tutti i formati</Text>
+                : <Text style={styles.allFormatsBtnText}>📱 All formats</Text>
               }
             </View>
           </Pressable>
         )}
       </View>
 
+      {/* Progress text */}
       {loading && (
-        <Text style={styles.progressText}>✨ Generazione in corso... (30–90 sec)</Text>
+        <Text style={styles.progressText}>✨ Generation in progress... (30-90 sec)</Text>
       )}
       {batchProgress ? (
         <Text style={styles.progressText}>{batchProgress}</Text>
       ) : null}
 
-      {/* Single image preview */}
+      {/* Single image result */}
       {imageUri && !batchResults && (
-        <View style={styles.previewSection}>
-          <View>
-            {imageError ? (
-              <View style={[styles.previewImage, styles.imageOverlay]}>
-                <Text style={styles.imageErrorIcon}>⚠️</Text>
-                <Text style={styles.imageErrorText}>Generazione fallita. Riprova.</Text>
-              </View>
-            ) : (
-              <Image
-                source={{ uri: imageUri }}
-                style={[
-                  styles.previewImage,
-                  mode === 'thumbnail' && { aspectRatio: 3 / 2 },
-                  mode === 'logo' && { aspectRatio: 1 },
-                  mode === 'social-cover' && { aspectRatio: 3 / 4 },
-                ]}
-                resizeMode="contain"
-              />
-            )}
-          </View>
-          <View style={styles.previewActions}>
-            <Pressable
-              onPress={handleGenerate}
-              style={({ pressed }) => [styles.regenBtn, { opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Text style={styles.regenBtnText}>🔄 Rigenera</Text>
-            </Pressable>
-            {onSave && (
-              <Pressable
-                onPress={handleSave}
-                style={({ pressed }) => [{ flex: 1, opacity: pressed ? 0.7 : 1 }]}
-              >
-                <LinearGradient
-                  colors={[COLORS.neonCyan, COLORS.neonViolet] as unknown as [string, string]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveBtn}
-                >
-                  <Text style={styles.saveBtnText}>💾 Salva</Text>
-                </LinearGradient>
-              </Pressable>
-            )}
-          </View>
-        </View>
+        <ImageResult
+          imageUri={imageUri}
+          mode={mode}
+          loading={loading}
+          error={imageError}
+          onRegenerate={handleGenerate}
+          onSave={handleSave}
+        />
       )}
 
       {/* Batch results */}
       {batchResults && (
-        <View style={styles.batchSection}>
-          <View style={styles.batchGrid}>
-            {(Object.entries(SOCIAL_FORMATS) as [SocialFormat, (typeof SOCIAL_FORMATS)[SocialFormat]][]).map(([key, fmt]) => {
-              const uri = batchResults.get(key);
-              return (
-                <View key={key} style={styles.batchItem}>
-                  {uri ? (
-                    <Image source={{ uri }} style={styles.batchImage} resizeMode="cover" />
-                  ) : (
-                    <View style={[styles.batchImage, styles.batchError]}>
-                      <Text style={styles.batchErrorText}>✕</Text>
-                    </View>
-                  )}
-                  <Text style={styles.batchLabel}>{fmt.label}</Text>
-                </View>
-              );
-            })}
-          </View>
-          {onSave && (
-            <Pressable onPress={handleSaveBatch} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-              <LinearGradient
-                colors={[COLORS.neonCyan, COLORS.neonViolet] as unknown as [string, string]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.saveBtn}
-              >
-                <Text style={styles.saveBtnText}>💾 Salva tutti</Text>
-              </LinearGradient>
-            </Pressable>
-          )}
-        </View>
+        <BatchResults results={batchResults} onSaveAll={handleSaveBatch} />
       )}
     </ScrollView>
   );
@@ -335,33 +211,6 @@ export function ImageGeneratorUI({ onSave, projectId }: ImageGeneratorUIProps) {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   container: { gap: SPACING.md, paddingBottom: SPACING.xl },
-  modeRow: { flexDirection: 'row', gap: SPACING.sm },
-  modeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.xs,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-  },
-  modeBtnInactive: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  modeBtnIcon: { fontSize: 14 },
-  modeBtnLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12 },
-  promptInput: {
-    fontFamily: FONTS.bodyRegular,
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
-  },
   btnRow: { flexDirection: 'row', gap: SPACING.sm },
   generateBtn: { borderRadius: RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
   generateBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: COLORS.bg },
@@ -370,60 +219,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FF00E5' + '55',
+    borderColor: COLORS.neonMagenta + '55',
   },
-  allFormatsBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: '#FF00E5' },
+  allFormatsBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: COLORS.neonMagenta },
   progressText: { fontFamily: FONTS.bodyRegular, fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
-  previewSection: { gap: SPACING.md },
-  previewImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: RADIUS.md, backgroundColor: COLORS.bgElevated, minHeight: 200 },
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.bgElevated + 'DD',
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-  },
-  imageLoadingText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary },
-  imageErrorIcon: { fontSize: 32 },
-  imageErrorText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.neonPink },
-  previewActions: { flexDirection: 'row', gap: SPACING.sm },
-  regenBtn: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  regenBtnText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary },
-  saveBtn: { borderRadius: RADIUS.full, paddingVertical: SPACING.sm, alignItems: 'center' },
-  saveBtnText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: COLORS.bg },
-  batchSection: { gap: SPACING.md },
-  batchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  batchItem: { width: '47%', gap: SPACING.xs },
-  batchImage: { width: '100%', aspectRatio: 1, borderRadius: RADIUS.sm, backgroundColor: COLORS.bgElevated },
-  batchError: { alignItems: 'center', justifyContent: 'center' },
-  batchErrorText: { fontSize: 24, color: COLORS.textMuted },
-  batchLabel: { fontFamily: FONTS.bodyMedium, fontSize: 11, color: COLORS.textMuted, textAlign: 'center' },
-  providerSection: { gap: SPACING.xs },
-  providerLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textMuted },
-  providerRow: { flexDirection: 'row' as const, gap: SPACING.sm },
-  providerCard: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  providerCardActive: {
-    borderColor: COLORS.neonCyan,
-    backgroundColor: COLORS.neonCyan + '15',
-  },
-  providerName: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary },
-  providerNameActive: { color: COLORS.neonCyan },
-  providerDesc: { fontFamily: FONTS.bodyRegular, fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
-  providerWarning: { fontFamily: FONTS.bodyRegular, fontSize: 11, color: COLORS.neonOrange, marginTop: SPACING.xs },
 });

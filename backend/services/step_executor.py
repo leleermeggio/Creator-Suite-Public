@@ -10,6 +10,8 @@ import asyncio
 import logging
 from typing import Any
 
+DEFAULT_TOOL_TIMEOUT = 300  # 5 minutes default timeout
+
 from backend.services import (
     audio_cleanup_service,
     gemini_service,
@@ -401,6 +403,7 @@ async def dispatch_step(
     tool_id: str,
     parameters: Parameters,
     context: Context,
+    timeout_seconds: int | None = None,
 ) -> dict[str, Any]:
     """Look up the handler for tool_id and invoke it.
 
@@ -408,6 +411,7 @@ async def dispatch_step(
         tool_id: The tool identifier string (e.g. "jumpcut", "transcribe").
         parameters: Tool-specific parameters from the mission step.
         context: Execution context built by build_step_context().
+        timeout_seconds: Optional timeout override for this step.
 
     Returns:
         Output dict from the handler. Always returns a dict — never raises.
@@ -418,12 +422,20 @@ async def dispatch_step(
         logger.error("❌ Unknown tool_id: %s", tool_id)
         return {"error": f"Unknown tool: {tool_id}"}
 
+    timeout = timeout_seconds or parameters.get("timeout", DEFAULT_TOOL_TIMEOUT)
+
     logger.info(
-        "🚀 Dispatching step tool_id=%s project=%s", tool_id, context.get("project_id")
+        "🚀 Dispatching step tool_id=%s project=%s (timeout=%ds)",
+        tool_id, context.get("project_id"), timeout
     )
 
     try:
-        result = await handler(parameters, context)
+        result = await asyncio.wait_for(
+            handler(parameters, context), timeout=timeout
+        )
+    except asyncio.TimeoutError:
+        logger.error("❌ Step %s timed out after %ds", tool_id, timeout)
+        return {"error": f"Step timed out after {timeout} seconds"}
     except Exception as exc:
         logger.error("❌ Step handler %s raised unexpectedly: %s", tool_id, exc)
         return {"error": str(exc)}

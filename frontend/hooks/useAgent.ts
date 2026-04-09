@@ -20,7 +20,7 @@ export function useAgent(id: string | null) {
       const data = await getAgent(id);
       setAgent(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Errore nel caricamento agente');
+      setError(e instanceof Error ? e.message : 'Error loading agent');
     } finally {
       setLoading(false);
     }
@@ -29,17 +29,25 @@ export function useAgent(id: string | null) {
   const update = useCallback(
     async (data: Partial<AgentCreate>) => {
       if (!id) return;
-      const updated = await apiUpdateAgent(id, data);
-      setAgent(updated);
-      return updated;
+      try {
+        const updated = await apiUpdateAgent(id, data);
+        setAgent(updated);
+        return updated;
+      } catch (error: unknown) {
+        throw new Error(error instanceof Error ? error.message : 'Error updating agent');
+      }
     },
     [id],
   );
 
   const remove = useCallback(async () => {
     if (!id) return;
-    await apiDeleteAgent(id);
-    setAgent(null);
+    try {
+      await apiDeleteAgent(id);
+      setAgent(null);
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : 'Error deleting agent');
+    }
   }, [id]);
 
   useEffect(() => {

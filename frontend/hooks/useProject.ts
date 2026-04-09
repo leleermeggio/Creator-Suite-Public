@@ -11,21 +11,37 @@ export function useProject(id: string | undefined) {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<void> => {
     if (!id) return;
-    const p = await getProject(id);
-    setProject(p);
-    setLoading(false);
+    try {
+      const p = await getProject(id);
+      setProject(p);
+    } catch (error: any) {
+      console.error('Error loading project:', error);
+      setProject(null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
     refresh();
+    // Cleanup: no active subscriptions to unsubscribe, but ensure state is cleared on unmount
+    return () => {
+      // Clear project state when component unmounts to prevent memory leaks
+      setProject(null);
+    };
   }, [refresh]);
 
   const save = useCallback(
-    async (updated: Project) => {
-      await saveProject(updated);
-      setProject(updated);
+    async (updated: Project): Promise<void> => {
+      try {
+        await saveProject(updated);
+        setProject(updated);
+      } catch (error: unknown) {
+        console.error('Error saving project:', error);
+        throw new Error(error instanceof Error ? error.message : 'Error saving project');
+      }
     },
     [],
   );

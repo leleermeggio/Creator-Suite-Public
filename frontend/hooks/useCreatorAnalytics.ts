@@ -43,7 +43,7 @@ export function useCreatorAnalytics(period: Period = 'month') {
       setRevenueData(rev);
       setCalendarData(cal);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Errore caricamento analisi';
+      const msg = e instanceof Error ? e.message : 'Error loading analytics';
       setError(msg);
     } finally {
       setLoading(false);

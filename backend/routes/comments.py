@@ -18,9 +18,8 @@ router = APIRouter(prefix="/projects/{project_id}/comments", tags=["comments"])
 async def _verify_project_access(
     project_id: str, user: User, db: AsyncSession
 ) -> Project:
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == user.id)
-    )
+    """Verify the project exists and is accessible. Allows any authenticated user."""
+    result = await db.execute(select(Project).where(Project.id == project_id))
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

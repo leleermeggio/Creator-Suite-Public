@@ -23,14 +23,14 @@ async function pollJob(jobId: string, intervalMs = 2000, timeoutMs = 120000): Pr
     if (job.status === 'completed' || job.status === 'failed') return job;
     await new Promise(r => setTimeout(r, intervalMs));
   }
-  throw new Error('Timeout: generazione thumbnail troppo lenta.');
+  throw new Error('Timeout: thumbnail generation too slow');
 }
 
 export async function generateThumbnail(params: ThumbnailGenerateParams): Promise<string> {
   const { job_id } = await post<{ job_id: string; status: string }>('/thumbnails/generate', params);
   const job = await pollJob(job_id);
-  if (job.status === 'failed') throw new Error(job.error ?? 'Generazione fallita.');
+  if (job.status === 'failed') throw new Error(job.error ?? 'Generation failed');
   const url = job.result?.download_url ?? job.result?.storage_key;
-  if (!url) throw new Error('Nessun URL nella risposta.');
+  if (!url) throw new Error('No URL in response');
   return url;
 }

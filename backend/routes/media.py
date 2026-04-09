@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +25,7 @@ from backend.services.media_manager import generate_storage_key, validate_conten
 from backend.storage.r2 import R2Client
 
 router = APIRouter(prefix="/media", tags=["media"])
+logger = logging.getLogger(__name__)
 
 
 def _get_r2() -> R2Client:
@@ -58,11 +61,19 @@ async def get_upload_url(
 
     await _verify_project_access(body.project_id, user, db)
 
-    storage_key = generate_storage_key(user.id, body.project_id, body.filename)
-    r2 = _get_r2()
-    upload_url = r2.generate_upload_url(
-        key=storage_key, content_type=body.content_type, expires_in=900
-    )
+    try:
+        storage_key = generate_storage_key(user.id, body.project_id, body.filename)
+        r2 = _get_r2()
+        upload_url = r2.generate_upload_url(
+            key=storage_key, content_type=body.content_type, expires_in=900
+        )
+    except ValueError as e:
+        logger.error("Upload URL generation failed: %s", e)
+        raise HTTPException(status_code=422, detail="Invalid request parameters")
+    except Exception as e:
+        logger.error("R2 upload URL generation failed: %s", e)
+        raise HTTPException(status_code=503, detail="Storage service unavailable")
+
     return UploadURLResponse(upload_url=upload_url, storage_key=storage_key)
 
 
@@ -122,8 +133,13 @@ async def get_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    r2 = _get_r2()
-    download_url = r2.generate_download_url(key=asset.storage_key, expires_in=300)
+    try:
+        r2 = _get_r2()
+        download_url = r2.generate_download_url(key=asset.storage_key, expires_in=300)
+    except Exception as e:
+        logger.error("R2 download URL generation failed: %s", e)
+        raise HTTPException(status_code=503, detail="Storage service unavailable")
+
     response = MediaAssetResponse.model_validate(asset)
     response.download_url = download_url
     return response

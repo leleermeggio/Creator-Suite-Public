@@ -8,10 +8,16 @@ export function useSettings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSettings().then(s => {
-      setSettings(s);
-      setLoading(false);
-    });
+    (async () => {
+      try {
+        const s = await getSettings();
+        setSettings(s);
+      } catch (error: unknown) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const update = useCallback(async (partial: Partial<AppSettings>) => {

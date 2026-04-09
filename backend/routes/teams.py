@@ -29,7 +29,7 @@ async def create_team(
     await db.commit()
     await db.refresh(team)
 
-    # Auto-add owner as member
+    # Auto-add owner as member with OWNER role
     member = TeamMember(team_id=team.id, user_id=user.id, role=TeamRole.OWNER)
     db.add(member)
     await db.commit()

@@ -71,7 +71,8 @@ export async function uploadFileDirect(projectId: string, file: File): Promise<M
       mime_type: file.type || 'application/octet-stream',
       size_bytes: file.size,
     });
-  } catch {
+  } catch (error: unknown) {
+    console.error('Upload failed, falling back to local:', error);
     return await registerAsset({
       project_id: projectId,
       filename: file.name,

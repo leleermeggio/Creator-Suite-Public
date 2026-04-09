@@ -7,9 +7,14 @@ export function useJobs() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const j = await getJobs();
-    setJobs(j);
-    setLoading(false);
+    try {
+      const j = await getJobs();
+      setJobs(j);
+    } catch (error: unknown) {
+      console.error('Error loading jobs:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -18,33 +23,45 @@ export function useJobs() {
 
   const createJob = useCallback(
     async (partial: Omit<Job, 'id' | 'startedAt' | 'status'>) => {
-      const job = await addJob(partial);
-      await refresh();
-      return job;
+      try {
+        const job = await addJob(partial);
+        await refresh();
+        return job;
+      } catch (error: unknown) {
+        throw new Error(error instanceof Error ? error.message : 'Error creating job');
+      }
     },
     [refresh],
   );
 
   const completeJob = useCallback(
     async (id: string, outputFileId?: string) => {
-      await updateJob(id, {
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        outputFileId,
-      });
-      await refresh();
+      try {
+        await updateJob(id, {
+          status: 'completed',
+          completedAt: new Date().toISOString(),
+          outputFileId,
+        });
+        await refresh();
+      } catch (error: unknown) {
+        throw new Error(error instanceof Error ? error.message : 'Error completing job');
+      }
     },
     [refresh],
   );
 
   const failJob = useCallback(
     async (id: string, error: string) => {
-      await updateJob(id, {
-        status: 'failed',
-        completedAt: new Date().toISOString(),
-        error,
-      });
-      await refresh();
+      try {
+        await updateJob(id, {
+          status: 'failed',
+          completedAt: new Date().toISOString(),
+          error,
+        });
+        await refresh();
+      } catch (error: unknown) {
+        throw new Error(error instanceof Error ? error.message : 'Error failing job');
+      }
     },
     [refresh],
   );

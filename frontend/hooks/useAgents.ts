@@ -20,7 +20,7 @@ export function useAgents() {
       setAgents(all.filter((a) => !a.is_preset));
       setPresets(presetList);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Errore nel caricamento agenti');
+      setError(e instanceof Error ? e.message : 'Error loading agents');
     } finally {
       setLoading(false);
     }
@@ -28,8 +28,12 @@ export function useAgents() {
 
   const deleteAgent = useCallback(
     async (id: string) => {
-      await apiDeleteAgent(id);
-      await refresh();
+      try {
+        await apiDeleteAgent(id);
+        await refresh();
+      } catch (error: unknown) {
+        throw new Error(error instanceof Error ? error.message : 'Error deleting agent');
+      }
     },
     [refresh],
   );

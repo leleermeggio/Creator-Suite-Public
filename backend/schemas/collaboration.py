@@ -13,6 +13,13 @@ from backend.models.team import TeamRole
 class TeamCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
+    def __init__(self, **data):
+        if "name" in data:
+            data["name"] = data["name"].strip()
+            if not data["name"]:
+                raise ValueError("Name cannot be empty or whitespace only")
+        super().__init__(**data)
+
 
 class TeamResponse(BaseModel):
     id: str
@@ -65,6 +72,11 @@ class CommentCreate(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     timeline_timestamp: float | None = None
     asset_id: str | None = None
+
+    def __init__(self, **data):
+        if "text" in data:
+            data["text"] = data["text"].strip()
+        super().__init__(**data)
 
 
 class CommentUpdate(BaseModel):

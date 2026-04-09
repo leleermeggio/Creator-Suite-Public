@@ -12,6 +12,7 @@ import {
   dismissInsight as apiDismissInsight,
   type MissionResponse,
 } from '@/services/missionsApi';
+import type { ApiError } from '@/services/apiClient';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -20,15 +21,30 @@ export function useMission(id: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryCountRef = useRef<number>(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<MissionResponse | null> => {
     if (!id) return null;
     try {
       const data = await getMission(id);
       setMission(data);
+      setError(null); // Clear error on successful fetch
+      retryCountRef.current = 0; // Reset retry count on success
       return data;
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to load mission');
+      const errorMsg = e?.message ?? 'Error loading mission';
+      setError(errorMsg);
+      
+      // Retry logic for network failures (status 0 or 5xx)
+      if ((e.status === 0 || e.status >= 500) && retryCountRef.current < 3) {
+        retryCountRef.current += 1;
+        const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000); // Exponential backoff
+        if (__DEV__) {
+          console.log(`Retry ${retryCountRef.current}/3 in ${delay}ms for mission ${id}`);
+        }
+        setTimeout(refresh, delay);
+      }
+      
       return null;
     }
   }, [id]);
@@ -51,10 +67,13 @@ export function useMission(id: string | null) {
       }
     }
     return () => {
+      // Cleanup: always clear interval on unmount or status change
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
+      // Reset retry count when polling stops
+      retryCountRef.current = 0;
     };
   }, [mission?.status, refresh]);
 

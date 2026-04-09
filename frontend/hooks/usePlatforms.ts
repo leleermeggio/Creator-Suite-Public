@@ -19,7 +19,7 @@ export function usePlatforms() {
       const data = await getPlatformStatus();
       setPlatforms(data.platforms);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Errore caricamento piattaforme';
+      const msg = e instanceof Error ? e.message : 'Error loading platforms';
       setError(msg);
     } finally {
       setLoading(false);
@@ -37,7 +37,7 @@ export function usePlatforms() {
       // Refresh status after OAuth flow completes
       await refresh();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Errore connessione piattaforma';
+      const msg = e instanceof Error ? e.message : 'Connection error';
       setError(msg);
     }
   }, [refresh]);
@@ -47,7 +47,7 @@ export function usePlatforms() {
       await disconnectPlatform(platform);
       await refresh();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Errore disconnessione piattaforma';
+      const msg = e instanceof Error ? e.message : 'Disconnection error';
       setError(msg);
     }
   }, [refresh]);
