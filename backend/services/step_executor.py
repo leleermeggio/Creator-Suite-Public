@@ -10,8 +10,6 @@ import asyncio
 import logging
 from typing import Any
 
-DEFAULT_TOOL_TIMEOUT = 300  # 5 minutes default timeout
-
 from backend.services import (
     audio_cleanup_service,
     gemini_service,
@@ -22,6 +20,8 @@ from backend.services import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_TOOL_TIMEOUT = 300  # 5 minutes default timeout
 
 # ---------------------------------------------------------------------------
 # Type aliases
@@ -426,13 +426,13 @@ async def dispatch_step(
 
     logger.info(
         "🚀 Dispatching step tool_id=%s project=%s (timeout=%ds)",
-        tool_id, context.get("project_id"), timeout
+        tool_id,
+        context.get("project_id"),
+        timeout,
     )
 
     try:
-        result = await asyncio.wait_for(
-            handler(parameters, context), timeout=timeout
-        )
+        result = await asyncio.wait_for(handler(parameters, context), timeout=timeout)
     except asyncio.TimeoutError:
         logger.error("❌ Step %s timed out after %ds", tool_id, timeout)
         return {"error": f"Step timed out after {timeout} seconds"}
