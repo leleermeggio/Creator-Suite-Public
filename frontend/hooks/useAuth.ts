@@ -12,6 +12,7 @@ export interface AuthState {
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (patch: { display_name?: string; avatar_url?: string }) => Promise<void>;
 }
 
 export function useAuth(): AuthState {
@@ -26,8 +27,8 @@ export function useAuth(): AuthState {
         if (!token) return;
         const profile = await authApi.getMe();
         if (!cancelled) setUser(profile);
-      } catch (err: any) {
-        if (err?.status === 401) {
+      } catch (err: unknown) {
+        if ((err as { status?: number })?.status === 401) {
           await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_KEY]);
         }
       } finally {
@@ -52,11 +53,23 @@ export function useAuth(): AuthState {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(async (
+    patch: { display_name?: string; avatar_url?: string },
+  ) => {
+    if (patch.avatar_url !== undefined) {
+      setUser(prev => prev ? { ...prev, avatar_url: patch.avatar_url! } : prev);
+      return;
+    }
+    const updated = await authApi.updateMe(patch);
+    setUser(updated);
+  }, []);
+
   return {
     user,
     loading,
     isLoggedIn: user !== null,
     login,
     logout,
+    updateProfile,
   };
 }
