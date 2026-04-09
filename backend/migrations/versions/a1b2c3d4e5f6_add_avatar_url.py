@@ -5,6 +5,7 @@ Revises: 1cd136f2d91c
 Create Date: 2026-04-09
 
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -19,7 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("avatar_url", sa.String(length=512), nullable=True))
+    op.add_column(
+        "users", sa.Column("avatar_url", sa.String(length=512), nullable=True)
+    )
 
 
 def downgrade() -> None:

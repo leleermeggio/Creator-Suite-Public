@@ -160,6 +160,10 @@ def create_app(
 
     _static_dir = Path(__file__).parent / "static"
     _static_dir.mkdir(exist_ok=True)
-    app.mount("/static", StaticFiles(directory=str(_static_dir), check_dir=False), name="static")
+    app.mount(
+        "/static",
+        StaticFiles(directory=str(_static_dir), check_dir=False),
+        name="static",
+    )
 
     return app

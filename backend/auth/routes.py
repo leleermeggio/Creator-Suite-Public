@@ -146,7 +146,9 @@ async def upload_avatar(
         )
     data = await file.read()
     if len(data) > _MAX_AVATAR_BYTES:
-        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
+        raise HTTPException(
+            status_code=413, detail="File too large. Maximum size is 5 MB."
+        )
 
     if not _validate_magic(data, file.content_type):
         raise HTTPException(

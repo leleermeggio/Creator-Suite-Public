@@ -1,4 +1,5 @@
 """Tests for PUT /auth/me and POST /auth/avatar."""
+
 from __future__ import annotations
 
 import pytest
@@ -14,6 +15,7 @@ async def _register(client, email: str, display_name: str = "Test User") -> str:
 
 
 # ── PUT /auth/me ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_update_me_display_name(client):
@@ -76,6 +78,7 @@ async def test_update_me_empty_body_is_noop(client):
 
 
 # ── POST /auth/avatar ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upload_avatar_jpeg(client):

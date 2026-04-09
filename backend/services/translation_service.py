@@ -49,11 +49,15 @@ def translate_text(text: str, target_lang: str, source_lang: str = "auto") -> st
     # Language code validation
     if target_lang not in SUPPORTED_LANGUAGES and target_lang != "auto":
         valid_codes = ", ".join(SUPPORTED_LANGUAGES.keys())
-        raise ValueError(f"Invalid target language: {target_lang}. Valid: {valid_codes}")
+        raise ValueError(
+            f"Invalid target language: {target_lang}. Valid: {valid_codes}"
+        )
 
     if source_lang != "auto" and source_lang not in SUPPORTED_LANGUAGES:
         valid_codes = ", ".join(SUPPORTED_LANGUAGES.keys())
-        raise ValueError(f"Invalid source language: {source_lang}. Valid: {valid_codes}")
+        raise ValueError(
+            f"Invalid source language: {source_lang}. Valid: {valid_codes}"
+        )
 
     try:
         from deep_translator import GoogleTranslator
@@ -106,12 +110,16 @@ def translate_segments(
     # Validate target language code
     if target_lang not in SUPPORTED_LANGUAGES and target_lang != "auto":
         valid_codes = ", ".join(SUPPORTED_LANGUAGES.keys())
-        raise ValueError(f"Invalid target language: {target_lang}. Valid: {valid_codes}")
+        raise ValueError(
+            f"Invalid target language: {target_lang}. Valid: {valid_codes}"
+        )
 
     # Validate total input length
     total_length = sum(len(seg.get("text", "")) for seg in segments)
     if total_length > MAX_INPUT_LENGTH:
-        raise ValueError(f"Total input too long: {total_length} chars (max {MAX_INPUT_LENGTH})")
+        raise ValueError(
+            f"Total input too long: {total_length} chars (max {MAX_INPUT_LENGTH})"
+        )
 
     translated = []
     for seg in segments:

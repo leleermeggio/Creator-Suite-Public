@@ -127,7 +127,9 @@ async def generate_thumbnail(
     if not body.title or len(body.title.strip()) == 0:
         raise HTTPException(status_code=422, detail="Title is required")
     if len(body.title) > 100:
-        raise HTTPException(status_code=422, detail="Title must be at most 100 characters")
+        raise HTTPException(
+            status_code=422, detail="Title must be at most 100 characters"
+        )
 
     # Validate accent_color format (basic hex check)
     if body.accent_color and not body.accent_color.startswith("#"):

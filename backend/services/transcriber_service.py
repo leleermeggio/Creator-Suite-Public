@@ -36,7 +36,7 @@ def transcribe_audio(
     file_size = os.path.getsize(audio_path)
     if file_size > MAX_FILE_SIZE_BYTES:
         raise ValueError(
-            f"File too large: {file_size / (1024*1024):.1f}MB (max 500MB)"
+            f"File too large: {file_size / (1024 * 1024):.1f}MB (max 500MB)"
         )
 
     # Audio format validation
