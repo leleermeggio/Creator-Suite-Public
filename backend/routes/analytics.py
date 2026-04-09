@@ -43,20 +43,18 @@ async def ingest_events(
     db: AsyncSession = Depends(get_db),
 ):
     """Accept a batch of analytics events (up to 100)."""
-    records = []
     for ev in body.events:
-        records.append(
-            AnalyticsEvent(
-                user_id=user.id,
-                event_type=ev.event_type,
-                event_data=ev.event_data,
-                device_info=ev.device_info,
-                app_version=ev.app_version,
-            )
+        record = AnalyticsEvent(
+            user_id=user.id,
+            event_type=ev.event_type,
+            event_data=ev.event_data,
+            device_info=ev.device_info,
+            app_version=ev.app_version,
         )
-    db.add_all(records)
+        db.add(record)
+        await db.flush()  # Ensure each event gets a unique timestamp
     await db.commit()
-    return {"accepted": len(records)}
+    return {"accepted": len(body.events)}
 
 
 @router.get("/events", response_model=list[EventResponse])
@@ -68,7 +66,7 @@ async def list_my_events(
     result = await db.execute(
         select(AnalyticsEvent)
         .where(AnalyticsEvent.user_id == user.id)
-        .order_by(AnalyticsEvent.created_at.desc())
+        .order_by(AnalyticsEvent.created_at.desc(), AnalyticsEvent.id.desc())
         .limit(limit)
     )
     return list(result.scalars().all())

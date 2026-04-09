@@ -15,8 +15,13 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 
 class SearchRequest(BaseModel):
-    project_id: str
+    project_id: str = Field(min_length=1)
     query: str = Field(min_length=1, max_length=500)
+
+    def __init__(self, **data):
+        if "query" in data:
+            data["query"] = data["query"].strip()
+        super().__init__(**data)
 
 
 class SearchResult(BaseModel):
