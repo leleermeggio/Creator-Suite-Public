@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,6 +17,7 @@ from backend.models.project import Project
 from backend.models.user import User
 
 router = APIRouter(prefix="/audio", tags=["audio"])
+logger = logging.getLogger(__name__)
 
 
 class AudioMixRequest(BaseModel):
@@ -62,28 +64,44 @@ async def mix_audio(
     """Mix multiple audio tracks. Creates an async job."""
     await _verify_project_access(body.project_id, user, db)
 
-    job = Job(
-        project_id=body.project_id,
-        user_id=user.id,
-        type=JobType.AUDIO_CLEANUP,
-        status=JobStatus.QUEUED,
-        input_params={
-            "action": "mix",
-            "track_asset_ids": body.track_asset_ids,
-            "volumes": body.volumes,
-        },
-    )
-    db.add(job)
-    await db.commit()
-    await db.refresh(job)
+    # Validate volumes if provided
+    if body.volumes is not None and len(body.volumes) != len(body.track_asset_ids):
+        raise HTTPException(
+            status_code=422,
+            detail="Volumes list length must match track_asset_ids length",
+        )
+
+    try:
+        job = Job(
+            project_id=body.project_id,
+            user_id=user.id,
+            type=JobType.AUDIO_CLEANUP,
+            status=JobStatus.QUEUED,
+            input_params={
+                "action": "mix",
+                "track_asset_ids": body.track_asset_ids,
+                "volumes": body.volumes,
+            },
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+    except Exception as e:
+        logger.error("Failed to create audio mix job: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
     from backend.workers.tasks import process_job
 
-    process_job.delay(
-        job_id=str(job.id),
-        job_type="audio_cleanup",
-        input_params=job.input_params,
-    )
+    try:
+        process_job.delay(
+            job_id=str(job.id),
+            job_type="audio_cleanup",
+            input_params=job.input_params,
+        )
+    except Exception as e:
+        logger.error("Failed to queue audio mix job: %s", e)
+        raise HTTPException(status_code=503, detail="Task queue unavailable")
+
     return {"job_id": job.id, "status": "queued"}
 
 
@@ -96,28 +114,44 @@ async def normalize_audio(
     """Normalize audio loudness. Creates an async job."""
     await _verify_project_access(body.project_id, user, db)
 
-    job = Job(
-        project_id=body.project_id,
-        user_id=user.id,
-        type=JobType.AUDIO_CLEANUP,
-        status=JobStatus.QUEUED,
-        input_params={
-            "action": "normalize",
-            "asset_id": body.asset_id,
-            "target_lufs": body.target_lufs,
-        },
-    )
-    db.add(job)
-    await db.commit()
-    await db.refresh(job)
+    # Validate target_lufs range (-25 to -7 LUFS is typical)
+    if not (-25 <= body.target_lufs <= -7):
+        raise HTTPException(
+            status_code=422,
+            detail="target_lufs must be between -25 and -7",
+        )
+
+    try:
+        job = Job(
+            project_id=body.project_id,
+            user_id=user.id,
+            type=JobType.AUDIO_CLEANUP,
+            status=JobStatus.QUEUED,
+            input_params={
+                "action": "normalize",
+                "asset_id": body.asset_id,
+                "target_lufs": body.target_lufs,
+            },
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+    except Exception as e:
+        logger.error("Failed to create audio normalize job: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
     from backend.workers.tasks import process_job
 
-    process_job.delay(
-        job_id=str(job.id),
-        job_type="audio_cleanup",
-        input_params=job.input_params,
-    )
+    try:
+        process_job.delay(
+            job_id=str(job.id),
+            job_type="audio_cleanup",
+            input_params=job.input_params,
+        )
+    except Exception as e:
+        logger.error("Failed to queue audio normalize job: %s", e)
+        raise HTTPException(status_code=503, detail="Task queue unavailable")
+
     return {"job_id": job.id, "status": "queued"}
 
 
@@ -130,24 +164,33 @@ async def extract_audio(
     """Extract audio from video. Creates an async job."""
     await _verify_project_access(body.project_id, user, db)
 
-    job = Job(
-        project_id=body.project_id,
-        user_id=user.id,
-        type=JobType.AUDIO_CLEANUP,
-        status=JobStatus.QUEUED,
-        input_params={"action": "extract", "asset_id": body.asset_id},
-    )
-    db.add(job)
-    await db.commit()
-    await db.refresh(job)
+    try:
+        job = Job(
+            project_id=body.project_id,
+            user_id=user.id,
+            type=JobType.AUDIO_CLEANUP,
+            status=JobStatus.QUEUED,
+            input_params={"action": "extract", "asset_id": body.asset_id},
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+    except Exception as e:
+        logger.error("Failed to create audio extract job: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
     from backend.workers.tasks import process_job
 
-    process_job.delay(
-        job_id=str(job.id),
-        job_type="audio_cleanup",
-        input_params=job.input_params,
-    )
+    try:
+        process_job.delay(
+            job_id=str(job.id),
+            job_type="audio_cleanup",
+            input_params=job.input_params,
+        )
+    except Exception as e:
+        logger.error("Failed to queue audio extract job: %s", e)
+        raise HTTPException(status_code=503, detail="Task queue unavailable")
+
     return {"job_id": job.id, "status": "queued"}
 
 
@@ -172,7 +215,14 @@ async def create_tts(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="edge-tts non installato. Contatta il supporto.",
             )
+        except RuntimeError as exc:
+            logger.error("TTS generation failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Text-to-speech service failed",
+            ) from exc
         except Exception as exc:
+            logger.error("Unexpected TTS error: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(exc),

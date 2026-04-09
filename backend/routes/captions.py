@@ -55,30 +55,52 @@ async def generate_captions(
     """
     await _verify_project_access(body.project_id, user, db)
 
-    caption = Caption(
-        project_id=body.project_id,
-        user_id=user.id,
-        asset_id=body.asset_id,
-        language=body.language,
-        style_preset=body.style_preset,
-        segments=body.segments,
-    )
-    db.add(caption)
-    await db.commit()
-    await db.refresh(caption)
+    # Validate asset exists if provided
+    if body.asset_id:
+        from backend.models.media_asset import MediaAsset
+
+        result = await db.execute(
+            select(MediaAsset).where(
+                MediaAsset.id == body.asset_id,
+                MediaAsset.user_id == user.id,
+                MediaAsset.project_id == body.project_id,
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Media asset not found")
+
+    try:
+        caption = Caption(
+            project_id=body.project_id,
+            user_id=user.id,
+            asset_id=body.asset_id,
+            language=body.language,
+            style_preset=body.style_preset,
+            segments=body.segments,
+        )
+        db.add(caption)
+        await db.commit()
+        await db.refresh(caption)
+    except Exception as e:
+        logger.error("Failed to create caption record: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
     if body.segments is None and body.asset_id:
         from backend.workers.tasks import process_job
 
-        process_job.delay(
-            job_id=str(caption.id),
-            job_type="transcribe",
-            input_params={
-                "asset_id": body.asset_id,
-                "language": body.language,
-                "caption_id": str(caption.id),
-            },
-        )
+        try:
+            process_job.delay(
+                job_id=str(caption.id),
+                job_type="transcribe",
+                input_params={
+                    "asset_id": body.asset_id,
+                    "language": body.language,
+                    "caption_id": str(caption.id),
+                },
+            )
+        except Exception as e:
+            logger.error("Failed to queue transcription job: %s", e)
+            raise HTTPException(status_code=503, detail="Task queue unavailable")
 
     return caption
 

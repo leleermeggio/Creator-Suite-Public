@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,7 @@ from backend.schemas.export import ExportCreate, ExportResponse
 from backend.storage.r2 import R2Client
 
 router = APIRouter(prefix="/exports", tags=["exports"])
+logger = logging.getLogger(__name__)
 
 
 def _get_r2() -> R2Client:
@@ -37,31 +40,56 @@ async def create_export(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Project not found")
 
-    export = Export(
-        project_id=body.project_id,
-        user_id=user.id,
-        format_preset=body.format_preset,
-        aspect_ratio=body.aspect_ratio,
-        resolution=body.resolution,
-        codec=body.codec,
-    )
-    db.add(export)
-    await db.commit()
-    await db.refresh(export)
+    # Validate format_preset against known presets
+    VALID_PRESETS = [
+        "youtube_1080p",
+        "youtube_4k",
+        "youtube_shorts",
+        "instagram_post",
+        "instagram_story",
+        "tiktok",
+        "twitter",
+    ]
+    if body.format_preset not in VALID_PRESETS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid format_preset. Valid options: {', '.join(VALID_PRESETS)}",
+        )
+
+    try:
+        export = Export(
+            project_id=body.project_id,
+            user_id=user.id,
+            format_preset=body.format_preset,
+            aspect_ratio=body.aspect_ratio,
+            resolution=body.resolution,
+            codec=body.codec,
+        )
+        db.add(export)
+        await db.commit()
+        await db.refresh(export)
+    except Exception as e:
+        logger.error("Failed to create export record: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
     from backend.workers.tasks import process_job
 
-    process_job.delay(
-        job_id=str(export.id),
-        job_type="export",
-        input_params={
-            "format_preset": export.format_preset,
-            "aspect_ratio": export.aspect_ratio,
-            "resolution": export.resolution,
-            "codec": export.codec,
-            "project_id": str(export.project_id),
-        },
-    )
+    try:
+        process_job.delay(
+            job_id=str(export.id),
+            job_type="export",
+            input_params={
+                "format_preset": export.format_preset,
+                "aspect_ratio": export.aspect_ratio,
+                "resolution": export.resolution,
+                "codec": export.codec,
+                "project_id": str(export.project_id),
+            },
+        )
+    except Exception as e:
+        logger.error("Failed to queue export job: %s", e)
+        raise HTTPException(status_code=503, detail="Task queue unavailable")
+
     return export
 
 
