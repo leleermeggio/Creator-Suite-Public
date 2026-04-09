@@ -12,6 +12,7 @@ from backend.auth.jwt import create_access_token, create_refresh_token, decode_t
 from backend.auth.passwords import hash_password, verify_password
 from backend.auth.schemas import (
     LoginRequest,
+    ProfileUpdate,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -94,4 +95,17 @@ async def refresh(request: Request, body: RefreshRequest):
 
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    body: ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    if body.display_name is not None:
+        user.display_name = body.display_name
+    await db.commit()
+    await db.refresh(user)
     return user
