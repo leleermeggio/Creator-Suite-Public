@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import anyio
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from backend.auth.jwt import create_access_token, create_refresh_token, decode_t
 from backend.auth.passwords import hash_password, verify_password
 from backend.auth.schemas import (
     LoginRequest,
+    ProfileUpdate,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -94,4 +96,76 @@ async def refresh(request: Request, body: RefreshRequest):
 
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.put("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def update_me(
+    body: ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if body.display_name is not None:
+        user.display_name = body.display_name
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
+_AVATARS_DIR = Path(__file__).resolve().parent.parent / "static" / "avatars"
+_EXT_MAP = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+
+_MAGIC_BYTES: dict[bytes, str] = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG": "image/png",
+}
+_WEBP_SIG = (b"RIFF", b"WEBP")
+
+
+def _validate_magic(data: bytes, content_type: str) -> bool:
+    if content_type == "image/webp":
+        return data[:4] == _WEBP_SIG[0] and data[8:12] == _WEBP_SIG[1]
+    for magic, ctype in _MAGIC_BYTES.items():
+        if ctype == content_type and data[: len(magic)] == magic:
+            return True
+    return False
+
+
+@router.post("/avatar", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail="Unsupported file type. Use JPEG, PNG, or WebP.",
+        )
+    data = await file.read()
+    if len(data) > _MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5 MB.")
+
+    if not _validate_magic(data, file.content_type):
+        raise HTTPException(
+            status_code=422,
+            detail="File content does not match declared content type.",
+        )
+
+    ext = _EXT_MAP[file.content_type]
+    dest = _AVATARS_DIR / f"{user.id}.{ext}"
+
+    def _write_avatar() -> None:
+        _AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+        for old in _AVATARS_DIR.glob(f"{user.id}.*"):
+            old.unlink(missing_ok=True)
+        dest.write_bytes(data)
+
+    await anyio.to_thread.run_sync(_write_avatar)
+
+    user.avatar_url = f"/static/avatars/{user.id}.{ext}"
+    await db.commit()
+    await db.refresh(user)
     return user

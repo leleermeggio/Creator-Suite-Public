@@ -24,10 +24,15 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class ProfileUpdate(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=64)
+
+
 class UserResponse(BaseModel):
     id: str
     email: str
     display_name: str
+    avatar_url: str | None = None
     is_active: bool
 
     model_config = {"from_attributes": True}

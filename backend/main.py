@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import logging.config
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -155,5 +157,9 @@ def create_app(
     app.include_router(missions_router)
     app.include_router(platforms_router)
     app.include_router(creator_analytics_router)
+
+    _static_dir = Path(__file__).parent / "static"
+    _static_dir.mkdir(exist_ok=True)
+    app.mount("/static", StaticFiles(directory=str(_static_dir), check_dir=False), name="static")
 
     return app
