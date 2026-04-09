@@ -7,6 +7,9 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
+MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500MB
+ALLOWED_AUDIO_FORMATS = {".mp3", ".wav", ".m4a", ".ogg", ".flac"}
+
 
 def transcribe_audio(
     audio_path: str,
@@ -22,7 +25,26 @@ def transcribe_audio(
 
     Returns:
         dict with keys: text, segments[{start, end, text, words[{word, start, end}]}]
+
+    Raises:
+        ValueError: If file too large or unsupported format.
     """
+    # File size check
+    if not os.path.exists(audio_path):
+        raise ValueError(f"Audio file not found: {audio_path}")
+
+    file_size = os.path.getsize(audio_path)
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise ValueError(
+            f"File too large: {file_size / (1024*1024):.1f}MB (max 500MB)"
+        )
+
+    # Audio format validation
+    ext = os.path.splitext(audio_path)[1].lower()
+    if ext not in ALLOWED_AUDIO_FORMATS:
+        valid_formats = ", ".join(sorted(ALLOWED_AUDIO_FORMATS))
+        raise ValueError(f"Unsupported audio format: {ext}. Allowed: {valid_formats}")
+
     try:
         import whisper
     except ImportError:
@@ -30,7 +52,11 @@ def transcribe_audio(
         raise
 
     logger.info("Loading Whisper model: %s", model_name)
-    model = whisper.load_model(model_name)
+    try:
+        model = whisper.load_model(model_name)
+    except Exception as e:
+        logger.error("Failed to load Whisper model '%s': %s", model_name, e)
+        raise RuntimeError(f"Whisper model loading failed: {e}")
 
     options = {"word_timestamps": True}
     if language:
