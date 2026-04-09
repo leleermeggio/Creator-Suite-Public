@@ -29,6 +29,7 @@ class GeminiTimeoutError(GeminiError):
 
     pass
 
+
 _model = None
 
 API_TIMEOUT_SECONDS = 30
@@ -58,14 +59,20 @@ def _retry_with_backoff(func: Callable[[], Any], is_rate_limit: bool = False) ->
         try:
             return func()
         except requests.exceptions.Timeout:
-            logger.warning("Gemini request timeout (attempt %d/%d)", attempt + 1, MAX_RETRIES)
+            logger.warning(
+                "Gemini request timeout (attempt %d/%d)", attempt + 1, MAX_RETRIES
+            )
             if attempt == MAX_RETRIES - 1:
-                raise GeminiTimeoutError(f"Request timed out after {MAX_RETRIES} attempts")
+                raise GeminiTimeoutError(
+                    f"Request timed out after {MAX_RETRIES} attempts"
+                )
             time.sleep(backoff_ms / 1000)
         except requests.exceptions.HTTPError as http_err:
             response = getattr(http_err, "response", None)
             if response and response.status_code == 429:
-                retry_after = int(response.headers.get("Retry-After", backoff_ms // 1000))
+                retry_after = int(
+                    response.headers.get("Retry-After", backoff_ms // 1000)
+                )
                 logger.warning(
                     "Gemini rate limited (attempt %d/%d), retry after %ds",
                     attempt + 1,
@@ -73,16 +80,18 @@ def _retry_with_backoff(func: Callable[[], Any], is_rate_limit: bool = False) ->
                     retry_after,
                 )
                 if attempt == MAX_RETRIES - 1:
-                    raise GeminiRateLimitError(f"Rate limit exceeded", retry_after)
+                    raise GeminiRateLimitError("Rate limit exceeded", retry_after)
                 time.sleep(retry_after)
             else:
                 logger.error("Gemini HTTP error: %s", http_err)
                 raise GeminiError(str(http_err))
         except Exception as e:
-            logger.warning("Gemini error (attempt %d/%d): %s", attempt + 1, MAX_RETRIES, e)
+            logger.warning(
+                "Gemini error (attempt %d/%d): %s", attempt + 1, MAX_RETRIES, e
+            )
             if attempt == MAX_RETRIES - 1:
                 raise GeminiError(str(e))
-            time.sleep(backoff_ms * (2 ** attempt) / 1000)  # Exponential backoff
+            time.sleep(backoff_ms * (2**attempt) / 1000)  # Exponential backoff
 
     raise GeminiError("All retries exhausted")
 
@@ -197,7 +206,9 @@ def analyze_video_frame(image_path: str, prompt: str) -> str | None:
 
         img = PIL.Image.open(image_path)
         response = _retry_with_backoff(
-            lambda: model.generate_content([prompt, img], request_options={"timeout": API_TIMEOUT_SECONDS})
+            lambda: model.generate_content(
+                [prompt, img], request_options={"timeout": API_TIMEOUT_SECONDS}
+            )
         )
         return response.text
     except (GeminiError, GeminiRateLimitError, GeminiTimeoutError) as e:

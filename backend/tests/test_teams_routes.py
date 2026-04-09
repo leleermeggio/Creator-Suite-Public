@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 import uuid
+
+import pytest
 
 
 async def _register_and_get_token(client) -> str:

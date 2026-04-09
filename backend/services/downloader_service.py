@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 import tempfile
 from urllib.parse import urlparse
 
@@ -99,7 +98,7 @@ def download_from_url(
         # Download size limit check
         if size_bytes > MAX_DOWNLOAD_SIZE_BYTES:
             raise ValueError(
-                f"Downloaded file too large: {size_bytes / (1024*1024):.1f}MB (max 500MB)"
+                f"Downloaded file too large: {size_bytes / (1024 * 1024):.1f}MB (max 500MB)"
             )
         duration = info.get("duration", 0) or 0
 
