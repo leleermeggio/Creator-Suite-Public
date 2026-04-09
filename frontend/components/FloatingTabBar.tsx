@@ -15,10 +15,11 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
-  interpolate,
 } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS, SPACING, FONTS, BORDERS } from '@/constants/theme';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useAuthContext } from '@/context/AuthContext';
+import { Avatar } from '@/components/Avatar';
 
 const TAB_CONFIG = [
   { name: 'index',       icon: '📁', label: 'Progetti'  },
@@ -26,6 +27,7 @@ const TAB_CONFIG = [
   { name: 'quick-tools', icon: '⚡', label: 'Strumenti' },
   { name: 'activity',   icon: '📊', label: 'Attività'  },
   { name: 'analytics',  icon: '📈', label: 'Analisi'   },
+  { name: 'settings',   icon: '👤', label: 'Profilo'   },
 ];
 
 interface TabItemProps {
@@ -34,9 +36,10 @@ interface TabItemProps {
   isActive: boolean;
   onPress: () => void;
   onLongPress: () => void;
+  iconNode?: React.ReactNode;
 }
 
-function TabItem({ icon, label, isActive, onPress, onLongPress }: TabItemProps) {
+function TabItem({ icon, label, isActive, onPress, onLongPress, iconNode }: TabItemProps) {
   const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(isActive ? 1 : 0);
 
@@ -69,11 +72,7 @@ function TabItem({ icon, label, isActive, onPress, onLongPress }: TabItemProps) 
     scale.value = withSpring(0.88, { damping: 12, stiffness: 400 });
   };
   const handlePressOut = () => {
-    if (isActive) {
-      scale.value = withSpring(1.0, { damping: 12, stiffness: 300 });
-    } else {
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-    }
+    scale.value = withSpring(isActive ? 1.0 : 1, { damping: 12, stiffness: 300 });
   };
 
   return (
@@ -86,28 +85,21 @@ function TabItem({ icon, label, isActive, onPress, onLongPress }: TabItemProps) 
       accessibilityLabel={label}
       accessibilityRole="button"
     >
-      {/* Active glow indicator */}
       <Animated.View style={[styles.activeGlow, glowStyle]} />
+      {isActive && <Animated.View style={[styles.activeDot, glowStyle]} />}
 
-      {/* Active dot */}
-      {isActive && (
-        <Animated.View style={[styles.activeDot, glowStyle]} />
-      )}
+      <Animated.View style={iconStyle}>
+        {iconNode ?? <Text style={styles.tabIcon}>{icon}</Text>}
+      </Animated.View>
 
-      {/* Icon */}
-      <Animated.Text style={[styles.tabIcon, iconStyle]}>
-        {icon}
-      </Animated.Text>
-
-      {/* Label — only shown on active */}
-      {isActive && (
-        <Text style={styles.tabLabel}>{label}</Text>
-      )}
+      {isActive && <Text style={styles.tabLabel}>{label}</Text>}
     </Pressable>
   );
 }
 
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { user } = useAuthContext();
+
   const visibleTabs = state.routes.filter(
     (route) => (descriptors[route.key]?.options as any)?.href !== null
   );
@@ -120,11 +112,21 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         ) : null}
 
         <View style={[styles.pill, Platform.OS === 'web' && { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' } as any]}>
-          {visibleTabs.map((route, index) => {
+          {visibleTabs.map((route) => {
             const routeIndex = state.routes.indexOf(route);
             const isActive = state.index === routeIndex;
             const config = TAB_CONFIG.find((t) => t.name === route.name);
             if (!config) return null;
+
+            const avatarNode = route.name === 'settings' && user ? (
+              <View style={[styles.avatarRing, isActive && styles.avatarRingActive]}>
+                <Avatar
+                  uri={user.avatar_url}
+                  displayName={user.display_name}
+                  size={24}
+                />
+              </View>
+            ) : undefined;
 
             return (
               <TabItem
@@ -132,6 +134,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 icon={config.icon}
                 label={config.label}
                 isActive={isActive}
+                iconNode={avatarNode}
                 onPress={() => {
                   const event = navigation.emit({
                     type: 'tabPress',
@@ -199,9 +202,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(0, 255, 208, 0.10)',
     ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: 'inset 0 0 12px rgba(0,255,208,0.15)',
-        } as any)
+      ? ({ boxShadow: 'inset 0 0 12px rgba(0,255,208,0.15)' } as any)
       : {}),
   },
   activeDot: {
@@ -223,5 +224,14 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodySemiBold,
     letterSpacing: 0.3,
     marginTop: 1,
+  },
+  avatarRing: {
+    borderRadius: 14,
+    padding: 1,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  avatarRingActive: {
+    borderColor: COLORS.neonCyan,
   },
 });

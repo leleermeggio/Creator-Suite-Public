@@ -69,7 +69,7 @@ export default function TabLayout() {
           <Tabs.Screen name="quick-tools" options={{ title: 'Strumenti' }} />
           <Tabs.Screen name="activity" options={{ title: 'Attività' }} />
           <Tabs.Screen name="analytics" options={{ title: 'Analisi' }} />
-          <Tabs.Screen name="settings" options={{ href: null }} />
+          <Tabs.Screen name="settings" options={{ title: 'Profilo' }} />
         </Tabs>
       </View>
     </View>
