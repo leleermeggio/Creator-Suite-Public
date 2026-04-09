@@ -1,7 +1,14 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { CartesianChart, Line } from 'victory-native';
+
+// victory-native uses Skia APIs (XYWHRect) not available on web
+const CartesianChart = Platform.OS !== 'web'
+  ? require('victory-native').CartesianChart
+  : null;
+const Line = Platform.OS !== 'web'
+  ? require('victory-native').Line
+  : null;
 
 import type { TimeSeriesResponse } from '@/services/creatorAnalyticsApi';
 import { FONTS, SPACING, RADIUS, BORDERS } from '@/constants/theme';
@@ -124,28 +131,65 @@ export function MetricsChart({
     return row;
   });
 
+  // Web fallback: render a simple bar-style text chart
+  const renderChart = () => {
+    if (Platform.OS === 'web' || !CartesianChart || !Line) {
+      const maxVal = Math.max(
+        1,
+        ...chartData.flatMap(row => platformKeys.map(k => (row[k] as number) ?? 0))
+      );
+      return (
+        <View style={{ height, justifyContent: 'flex-end', gap: 4, paddingTop: 8 }}>
+          {chartData.slice(-8).map((row, i) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {platformKeys.map((key, pi) => {
+                const val = (row[key] as number) ?? 0;
+                const pct = Math.max(4, (val / maxVal) * 100);
+                return (
+                  <View
+                    key={key}
+                    style={{
+                      height: 8,
+                      width: `${pct}%` as any,
+                      backgroundColor: lineColors[pi],
+                      borderRadius: 4,
+                      opacity: 0.85,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      );
+    }
+    return (
+      <CartesianChart
+        data={chartData}
+        xKey="x"
+        yKeys={platformKeys}
+        domainPadding={{ top: 20, bottom: 0 }}
+      >
+        {({ points }: any) =>
+          platformKeys.map((key, i) => (
+            <Line
+              key={key}
+              points={points[key]}
+              color={lineColors[i]}
+              strokeWidth={2}
+              animate={{ type: 'timing', duration: 300 }}
+            />
+          ))
+        }
+      </CartesianChart>
+    );
+  };
+
   return (
     <View style={containerStyle}>
       {titleEl}
       <View style={{ height }}>
-        <CartesianChart
-          data={chartData}
-          xKey="x"
-          yKeys={platformKeys}
-          domainPadding={{ top: 20, bottom: 0 }}
-        >
-          {({ points }) =>
-            platformKeys.map((key, i) => (
-              <Line
-                key={key}
-                points={points[key]}
-                color={lineColors[i]}
-                strokeWidth={2}
-                animate={{ type: 'timing', duration: 300 }}
-              />
-            ))
-          }
-        </CartesianChart>
+        {renderChart()}
       </View>
       <View style={styles.legend}>
         {platformEntries.map(([name], i) => (

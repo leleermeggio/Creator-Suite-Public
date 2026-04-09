@@ -92,7 +92,7 @@ export async function generateAllSocialFormats(
     try {
       const url = await generateImage({ prompt, mode: 'social-cover', width, height });
       results.set(key, url);
-    } catch (error: ApiError) {
+    } catch (error: unknown) {
       console.error(`Error generating format ${key}:`, error);
       onError?.(key, error as Error);
       results.set(key, null);

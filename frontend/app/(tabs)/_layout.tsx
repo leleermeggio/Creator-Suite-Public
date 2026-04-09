@@ -41,7 +41,7 @@ export default function TabLayout() {
       {/* Main tab content */}
       <View style={{ flex: 1 }}>
         <Tabs
-          tabBar={isDesktop ? undefined : (props: BottomTabBarProps) => <FloatingTabBar {...props} />}
+          tabBar={isDesktop ? () => null : (props: BottomTabBarProps) => <FloatingTabBar {...props} />}
           screenOptions={{
             headerShown: !isDesktop,
             headerStyle: { backgroundColor: palette.bgSidebar },

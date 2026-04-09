@@ -42,7 +42,19 @@ export function useProjects() {
         getProjectIndex(),
       ]);
       const localIds = new Set(localIndex.map(e => e.id));
+      const beIds = new Set(beProjects.map(p => p.id));
+      // Backend name set — used to detect local stubs that duplicate a backend project
+      const beNames = new Set(beProjects.map(p => p.title.toLowerCase().trim()));
 
+      // Remove local stubs whose name matches a backend project but ID doesn't
+      // (these are duplicates created before the backend returned its UUID)
+      for (const local of localIndex) {
+        if (!beIds.has(local.id) && beNames.has(local.name.toLowerCase().trim())) {
+          await deleteProjectStorage(local.id);
+        }
+      }
+
+      // Add backend projects not yet in local storage
       for (const bep of beProjects) {
         if (!localIds.has(bep.id)) {
           const stub: Project = {
@@ -59,14 +71,14 @@ export function useProjects() {
         }
       }
 
-      const beIds = new Set(beProjects.map(p => p.id));
-      for (const local of localIndex) {
+      // Push any remaining local-only projects to backend
+      const updatedLocal = await getProjectIndex();
+      for (const local of updatedLocal) {
         if (!beIds.has(local.id)) {
           try {
             await beCreateProject(local.name);
-          } catch (error: ApiError) {
-            // best-effort — project may already exist or BE unreachable
-            if (__DEV__) console.warn('Backend sync failed:', error.message);
+          } catch (error: unknown) {
+            if (__DEV__) console.warn('Backend sync failed:', (error as Error).message);
           }
         }
       }

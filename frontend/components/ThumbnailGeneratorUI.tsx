@@ -176,7 +176,7 @@ export function ThumbnailGeneratorUI({ projectId, onSave }: ThumbnailGeneratorUI
       {/* Free generation UI */}
       {mode === 'free' && (
         <FreeGenerationUI
-          mode={mode === 'logo' ? 'logo' : 'cover'}
+          mode="cover"
           loading={loading}
           statusText={statusText}
           error={error}

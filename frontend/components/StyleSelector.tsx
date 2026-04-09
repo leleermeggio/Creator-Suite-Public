@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, FONTS, RADIUS } from '@/constants/theme';
 
-export type Mode = 'thumbnail' | 'logo' | 'social-cover';
+export type Mode = 'thumbnail' | 'logo' | 'social-cover' | 'free' | 'cover';
 
 interface StyleSelectorProps {
   mode: Mode;

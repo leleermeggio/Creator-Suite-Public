@@ -59,18 +59,33 @@ export async function updateMe(patch: { display_name?: string }): Promise<UserPr
 export async function uploadAvatar(imageUri: string): Promise<UserProfile> {
   const token = await AsyncStorage.getItem('auth_access_token');
   if (!token) throw new ApiError(401, 'Not authenticated');
-  const filename = imageUri.split('/').pop() ?? 'avatar.jpg';
-  const ext = (filename.split('.').pop() ?? 'jpg').toLowerCase();
-  const mimeMap: Record<string, string> = {
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    png: 'image/png',
-    webp: 'image/webp',
-  };
-  const mimeType = mimeMap[ext] ?? 'image/jpeg';
 
   const formData = new FormData();
-  formData.append('file', { uri: imageUri, name: filename, type: mimeType } as unknown as Blob);
+
+  if (typeof window !== 'undefined' && imageUri.startsWith('blob:')) {
+    // Web: fetch the blob URI and convert to a File
+    const blobRes = await fetch(imageUri);
+    const blob = await blobRes.blob();
+    const mimeType = blob.type || 'image/jpeg';
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const ext = extMap[mimeType] ?? 'jpg';
+    const file = new File([blob], `avatar.${ext}`, { type: mimeType });
+    formData.append('file', file);
+  } else {
+    // Native: use RN FormData blob trick
+    const filename = imageUri.split('/').pop() ?? 'avatar.jpg';
+    const ext = (filename.split('.').pop() ?? 'jpg').toLowerCase();
+    const mimeMap: Record<string, string> = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      png: 'image/png', webp: 'image/webp',
+    };
+    const mimeType = mimeMap[ext] ?? 'image/jpeg';
+    formData.append('file', { uri: imageUri, name: filename, type: mimeType } as unknown as Blob);
+  }
 
   const res = await fetch(`${API_BASE}/auth/avatar`, {
     method: 'POST',
