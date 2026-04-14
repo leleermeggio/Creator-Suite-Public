@@ -183,6 +183,14 @@ class OcrRequest(BaseModel):
     model: str | None = None
 
 
+class HashtagsRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=10000)
+    max_count: int = Field(default=5, ge=1, le=30)
+    provider: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+
+
 class ToolResult(BaseModel):
     result: str
 
@@ -1075,3 +1083,48 @@ async def analyze_media(
         ) from exc
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ── Hashtags endpoint ─────────────────────────────────────────────────────────
+
+
+@router.post("/hashtags", response_model=ToolResult)
+async def generate_hashtags(
+    body: HashtagsRequest,
+    _user: User = Depends(get_current_user),
+) -> ToolResult:
+    provider, api_key, default_model = _resolve_provider(body.provider, body.api_key)
+    model = body.model or default_model
+    system_prompt = "Sei un assistente che genera hashtag pertinenti per il contenuto fornito."
+    user_prompt = (
+        f"Genera {body.max_count} hashtag pertinenti per il seguente testo:\n\n{body.text}"
+    )
+
+    async with httpx.AsyncClient() as client:
+        # Try selected provider
+        try:
+            result = await _call_ai(
+                client, provider, api_key, model, system_prompt, user_prompt
+            )
+            return ToolResult(result=result)
+        except Exception as exc:
+            logger.warning("⚠️ %s hashtags failed, trying fallbacks: %s", provider, exc)
+
+        # Fallback: Pollinations (if not already the primary)
+        if provider != "pollinations":
+            try:
+                result = await _call_openai_compatible(
+                    client,
+                    POLLINATIONS_URL,
+                    "openai",
+                    system_prompt,
+                    user_prompt,
+                )
+                return ToolResult(result=result)
+            except Exception as exc:
+                logger.warning("⚠️ Pollinations hashtags fallback failed: %s", exc)
+
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI hashtags generation service unavailable. Please try again.",
+        )

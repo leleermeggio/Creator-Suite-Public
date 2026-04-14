@@ -58,7 +58,7 @@ export const TOOLS: Tool[] = [
   },
   {
     id: 'tts',
-    name: 'Text to Speech',
+    name: 'Sintesi vocale',
     description: 'Converti testo in audio naturale',
     icon: '🔊',
     gradient: COLORS.gradSunset,
@@ -76,7 +76,7 @@ export const TOOLS: Tool[] = [
   },
   {
     id: 'jumpcut',
-    name: 'Jump Cut',
+    name: 'Salto di ritmo',
     description: 'Rimuovi i silenzi automaticamente',
     icon: '✂️',
     gradient: COLORS.gradFire,
@@ -90,6 +90,15 @@ export const TOOLS: Tool[] = [
     icon: '🎨',
     gradient: ['#FF00E5', '#FFE633'],
     accentColor: '#FF00E5',
+    available: true,
+  },
+  {
+    id: 'hashtags',
+    name: 'Hashtag',
+    description: 'Genera hashtag per piattaforme social',
+    icon: '#️⃣',
+    gradient: ['#8B5CF6', '#EC4899'],
+    accentColor: '#8B5CF6',
     available: true,
   },
 ];

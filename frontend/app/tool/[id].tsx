@@ -26,6 +26,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useProject } from '@/hooks/useProject';
 import { translateText, LANGUAGES } from '@/services/translate';
 import { summarizeText, ocrImage } from '@/services/gemini';
+import { generateHashtags } from '@/services/hashtags';
 import { COLORS, SPACING, TYPO, FONTS, RADIUS } from '@/constants/theme';
 import { AnimatedScreen } from '@/components/animated';
 
@@ -39,6 +40,7 @@ const TOOL_HINTS: Record<string, { placeholder: string; inputType: 'text' | 'fil
   convert: { placeholder: 'Invia il file da convertire...', inputType: 'file', features: ['Audio → Audio', 'Video → Video', 'FFmpeg', 'Platform presets'] },
   jumpcut: { placeholder: 'Invia un video con silenzi...', inputType: 'file', features: ['Auto-detect', 'Threshold config', 'Preview', 'Export'] },
   'ai-image': { placeholder: '', inputType: 'text', features: ['Pollinations AI', 'Gratuito', 'Thumbnail', 'Social covers'] },
+  hashtags: { placeholder: 'Descrivi il contenuto per generare hashtag...', inputType: 'text', features: ['AI powered', 'Multi-piattaforma', 'Trending', 'Social ready'] },
 };
 
 export default function ToolScreen() {
@@ -277,6 +279,9 @@ export default function ToolScreen() {
         };
         setJumpcutResult({ url, filename, stats });
         return;
+      } else if (id === 'hashtags') {
+        if (!inputText.trim()) throw new Error('Inserisci il testo per generare hashtag.');
+        output = await generateHashtags(inputText);
       } else if (id === 'jumpcut') {
         if (jumpcutMode === 'file' && !selectedFile) {
           throw new Error('Seleziona un file video o audio.');
