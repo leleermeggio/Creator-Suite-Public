@@ -33,7 +33,10 @@ async def test_hashtags_returns_result(client):
     with patch("backend.routes.tools._call_ai", side_effect=fake_call_ai):
         resp = await client.post(
             "/tools/hashtags",
-            json={"text": "Vlog di una giornata in montagna con il drone", "max_count": 5},
+            json={
+                "text": "Vlog di una giornata in montagna con il drone",
+                "max_count": 5,
+            },
             headers=headers,
         )
 
@@ -94,12 +97,15 @@ async def test_hashtags_502_when_all_providers_fail(client):
     token = await _register_and_get_token(client)
     headers = {"Authorization": f"Bearer {token}"}
 
-    with patch(
-        "backend.routes.tools._call_ai",
-        side_effect=Exception("AI down"),
-    ), patch(
-        "backend.routes.tools._call_openai_compatible",
-        side_effect=Exception("Fallback down"),
+    with (
+        patch(
+            "backend.routes.tools._call_ai",
+            side_effect=Exception("AI down"),
+        ),
+        patch(
+            "backend.routes.tools._call_openai_compatible",
+            side_effect=Exception("Fallback down"),
+        ),
     ):
         resp = await client.post(
             "/tools/hashtags",

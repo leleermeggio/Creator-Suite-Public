@@ -25,7 +25,10 @@ async def generate(text: str, max_count: int, language: str) -> str:
     Raises:
         Exception: Re-raises any exceptions from Gemini service
     """
-    logger.info("🚀 Starting hashtag generation for text: %s", text[:50] + "..." if len(text) > 50 else text)
+    logger.info(
+        "🚀 Starting hashtag generation for text: %s",
+        text[:50] + "..." if len(text) > 50 else text,
+    )
 
     # Clamp max_count to valid range
     max_count = max(1, min(max_count, 30))
@@ -61,23 +64,109 @@ def _generate_hashtags_fallback(text: str, max_count: int, language: str) -> str
         Comma-separated string of hashtags
     """
     # Tokenize on whitespace and punctuation
-    tokens = re.findall(r'\b\w+\b', text)
+    tokens = re.findall(r"\b\w+\b", text)
 
     # Convert to lowercase
     tokens = [token.lower() for token in tokens]
 
     # Remove stop words (Italian + English)
     stop_words = {
-        'en': {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were',
-                'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can'},
-        'it': {'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'e', 'o', 'ma', 'in', 'su', 'da', 'per', 'di', 'con', 'by',
-                'è', 'sono', 'era', 'erano', 'essere', 'avere', 'ha', 'hanno', 'fai', 'fa', 'fanno', 'fare', 'farei', 'faresti',
-                'farebbe', 'farebbero', 'potere', 'può', 'posso', 'possiamo', 'potete', 'potrebbero', 'dovere', 'deve', 'devono',
-                'dovrebbe', 'dovrebbero', 'sapere', 'so', 'sappiamo', 'sai', 'sanno', 'saperlo', 'saperne', 'saperne'}
+        "en": {
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "can",
+        },
+        "it": {
+            "il",
+            "lo",
+            "la",
+            "i",
+            "gli",
+            "le",
+            "un",
+            "uno",
+            "una",
+            "e",
+            "o",
+            "ma",
+            "in",
+            "su",
+            "da",
+            "per",
+            "di",
+            "con",
+            "by",
+            "è",
+            "sono",
+            "era",
+            "erano",
+            "essere",
+            "avere",
+            "ha",
+            "hanno",
+            "fai",
+            "fa",
+            "fanno",
+            "fare",
+            "farei",
+            "faresti",
+            "farebbe",
+            "farebbero",
+            "potere",
+            "può",
+            "posso",
+            "possiamo",
+            "potete",
+            "potrebbero",
+            "dovere",
+            "deve",
+            "devono",
+            "dovrebbe",
+            "dovrebbero",
+            "sapere",
+            "so",
+            "sappiamo",
+            "sai",
+            "sanno",
+            "saperlo",
+            "saperne",
+            "saperne",
+        },
     }
 
     # Get stop words for the language or default to English
-    lang_stop_words = stop_words.get(language, stop_words['en'])
+    lang_stop_words = stop_words.get(language, stop_words["en"])
 
     # Remove stop words and deduplicate while preserving order
     seen = set()

@@ -1095,10 +1095,10 @@ async def generate_hashtags(
 ) -> ToolResult:
     provider, api_key, default_model = _resolve_provider(body.provider, body.api_key)
     model = body.model or default_model
-    system_prompt = "Sei un assistente che genera hashtag pertinenti per il contenuto fornito."
-    user_prompt = (
-        f"Genera {body.max_count} hashtag pertinenti per il seguente testo:\n\n{body.text}"
+    system_prompt = (
+        "Sei un assistente che genera hashtag pertinenti per il contenuto fornito."
     )
+    user_prompt = f"Genera {body.max_count} hashtag pertinenti per il seguente testo:\n\n{body.text}"
 
     async with httpx.AsyncClient() as client:
         # Try selected provider
