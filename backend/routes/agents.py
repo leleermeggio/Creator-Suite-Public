@@ -8,7 +8,6 @@ from backend.auth.dependencies import get_current_user, get_db
 from backend.middleware.rate_limit import limiter
 from backend.models.agent import Agent
 from backend.models.user import User
-from backend.middleware.rate_limit import limiter
 from backend.schemas.agent import (
     AgentCreate,
     AgentGenerateRequest,

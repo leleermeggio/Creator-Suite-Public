@@ -15,7 +15,6 @@ from backend.models.enums import MissionStatus
 from backend.models.mission import Mission
 from backend.models.project import Project
 from backend.models.user import User
-from backend.middleware.rate_limit import limiter
 from backend.schemas.mission import (
     MissionCreate,
     MissionModeUpdate,
