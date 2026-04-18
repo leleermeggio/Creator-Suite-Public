@@ -29,8 +29,16 @@ interface ToolGridItemProps {
 
 function ToolGridItem({ tool, index, cardWidth, progress, getItemStyle, onPress }: ToolGridItemProps) {
   const animStyle = useAnimatedStyle(() => getItemStyle(index, TOOLS.length));
+  const baseStyle = { width: cardWidth, opacity: tool.available ? 1 : 0.45 };
+  if (Platform.OS === 'web') {
+    return (
+      <View style={baseStyle}>
+        <ToolCard tool={tool} index={index} onPress={onPress} />
+      </View>
+    );
+  }
   return (
-    <Animated.View style={[{ width: cardWidth, opacity: tool.available ? 1 : 0.45 }, animStyle]}>
+    <Animated.View style={[baseStyle, animStyle]}>
       <ToolCard tool={tool} index={index} onPress={onPress} />
     </Animated.View>
   );
