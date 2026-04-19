@@ -116,3 +116,8 @@ LA-BASE/
 showcase.html
 bot.py.bak
 .worktrees/
+
+# Obsidian wiki — sources only ignored
+.raw/
+.obsidian/workspace*
+.obsidian/cache
