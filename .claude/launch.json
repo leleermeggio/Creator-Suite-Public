@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Backend API (dev, no Docker)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["run_server.py"],
+      "port": 8001
+    },
+    {
+      "name": "Backend API (Docker)",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "-f", "backend/docker-compose.yml", "up"],
+      "port": 8000
+    },
+    {
+      "name": "Frontend (Web)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "web", "--", "--port", "19006"],
+      "port": 19006
+    },
+    {
+      "name": "Telegram Bot",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["run_bot.py"]
+    }
+  ]
+}
