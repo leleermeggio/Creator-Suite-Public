@@ -8,6 +8,8 @@ Team instructions for Claude Code. Covers the full monorepo:
 > Personal overrides go in `CLAUDE.local.md` (gitignored).
 > Modular rules: @.claude/rules/code-style.md | @.claude/rules/api-conventions.md | @.claude/rules/testing.md
 
+> **🗺 Active programme (2026 Q2):** see `docs/superpowers/roadmap/2026-04-19-master-roadmap.md` and pick the next session via `docs/SESSION_GUIDE.md`. Wiki mirror in `wiki/index/HOME.md` (Obsidian).
+
 ---
 
 ## Quick Start
