@@ -8,18 +8,6 @@ Team instructions for Claude Code. Covers the full monorepo:
 > Personal overrides go in `CLAUDE.local.md` (gitignored).
 > Modular rules: @.claude/rules/code-style.md | @.claude/rules/api-conventions.md | @.claude/rules/testing.md
 
-## Wiki Knowledge Base
-
-Path: `obsidian-vault/`
-
-Before answering broad project questions:
-1. Read `obsidian-vault/wiki/hot.md` first (~500 words recent context)
-2. If not enough, read `obsidian-vault/wiki/index.md` (full catalog)
-3. For domain specifics, read `obsidian-vault/wiki/<folder>/_index.md` or a specific page
-4. Only then read individual wiki pages
-
-Do NOT read the wiki for: general syntax questions, things already in active conversation, tasks unrelated to Creator Zone domain.
-
 ---
 
 ## Quick Start

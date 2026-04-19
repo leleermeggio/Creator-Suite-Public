@@ -116,3 +116,9 @@ LA-BASE/
 showcase.html
 bot.py.bak
 .worktrees/
+
+# ── Obsidian vault — ignore session state, keep wiki pages ────────────────────
+obsidian-vault/.obsidian/workspace*
+obsidian-vault/wiki/hot.md
+obsidian-vault/wiki/log.md
+obsidian-vault/.trash/

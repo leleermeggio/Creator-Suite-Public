@@ -1,0 +1,131 @@
+{
+  "sources": {
+    ".raw/project-docs/CLAUDE.md": {
+      "hash": "83b0802df0559211d2d8cd1adfe5cdd5",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/modules/backend.md", "wiki/modules/frontend.md", "wiki/modules/bot.md", "wiki/overview.md"],
+      "pages_updated": ["wiki/index.md", "wiki/hot.md", "wiki/log.md"]
+    },
+    ".raw/rules/code-style.md": {
+      "hash": "cc01df61385565f46983164e696ab474",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/code-style.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/rules/api-conventions.md": {
+      "hash": "6ed8c7aa0a6a2a1896e6954f23eed26a",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/api-conventions.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/rules/testing.md": {
+      "hash": "b7fc946a2e93aec0d59330d98779437a",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/testing.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/superpowers-plans/2026-04-04-security-production-hardening.md": {
+      "hash": "337abe94bf4add1f8218d03fa54897b6",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/plan-security-hardening.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/superpowers-plans/2026-04-07-local-llm-fresh-setup.md": {
+      "hash": "269dcee2d916e5626ab67bd0056b1523",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/plan-local-llm.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/superpowers-plans/2026-04-08-avatar-profile.md": {
+      "hash": "02070a70a7cb6c72d06be185dc0881d4",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/decisions/plan-avatar-profile.md"],
+      "pages_updated": ["wiki/index.md"]
+    },
+    ".raw/superpowers-specs/2026-04-04-security-production-hardening-design.md": {
+      "hash": "44b0bb7757c99148d1367952558e8013",
+      "ingested_at": "2026-04-18",
+      "pages_created": [],
+      "pages_updated": ["wiki/decisions/plan-security-hardening.md"]
+    },
+    ".raw/superpowers-specs/2026-04-07-local-llm-setup-design.md": {
+      "hash": "a3ab6d663099e1120f823c5101d83171",
+      "ingested_at": "2026-04-18",
+      "pages_created": [],
+      "pages_updated": ["wiki/decisions/plan-local-llm.md"]
+    },
+    ".raw/superpowers-specs/2026-04-08-avatar-profile-design.md": {
+      "hash": "a49c51c6d4f31582172904fe6826ee18",
+      "ingested_at": "2026-04-18",
+      "pages_created": [],
+      "pages_updated": ["wiki/decisions/plan-avatar-profile.md"]
+    },
+    ".raw/project-docs/PHASE_PLAN.md": {
+      "hash": "8a95db85578c7a61c99c61adf9bd64fe",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/phase-plan.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/TOOLS_UPDATE.md": {
+      "hash": "dd0d26628ffdc71052c42731d0936628",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/tools-update.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/USAGE-BEST-PRACTICES.md": {
+      "hash": "fc65fe1eeb79049c37a392a37f462b39",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/usage-best-practices.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/GIT-WORKFLOW.md": {
+      "hash": "0827a585f39d418675b73a0d0dde22bd",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/git-workflow.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/BUILD-APK-LOCALE.md": {
+      "hash": "79a38f9e6748f2642aef5493a419538d",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/build-apk-locale.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/telegram-backend-integration.md": {
+      "hash": "701888bb83f6db0405299a2a016c5567",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/telegram-backend-integration.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/home-server.md": {
+      "hash": "c66b73de262fe97fc4c6d006261c4259",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/home-server-deployment.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/CHANGELOG.md": {
+      "hash": "63c7f59e052cdc7a820905d8f87a56a6",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/changelog.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/CONTRIBUTING.md": {
+      "hash": "69b7f2b037565ffc1706cd836cc3ca35",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/contributing.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/README.md": {
+      "hash": "e64681e966ae0d9d9a395bed2db795d8",
+      "ingested_at": "2026-04-18",
+      "pages_created": ["wiki/sources/readme.md"],
+      "pages_updated": []
+    },
+    ".raw/project-docs/OBSIDIAN_GUIDE.md": {
+      "hash": "c42b1768d38287a0a7b6898f80f1adc5",
+      "ingested_at": "2026-04-18",
+      "pages_created": [],
+      "pages_updated": [],
+      "note": "Self-referential setup doc — intentionally skipped for wiki pages"
+    }
+  }
+}
