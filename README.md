@@ -183,3 +183,23 @@ Servizi avviati:
 - **Redis** → localhost:6379
 - **Celery Worker** (in background)
 - **Telegram Bot** (se `.env` radice configurato)
+
+---
+
+## Dev Stack da tablet (Termux + Crush + llama-server)
+
+Il tablet come workstation: repo e agente girano sul device, su ZeroTier passano solo
+le chiamate HTTP verso `llama-server` sulla GPU del PC.
+
+```bash
+# sul PC (PowerShell)
+.\scripts\termux\start-llama-server.ps1 -ModelPath "D:\models\modello.gguf"
+
+# sul tablet (Termux)
+bash scripts/termux/bootstrap.sh --host <ip-zerotier>
+bash scripts/termux/doctor.sh
+cz
+```
+
+Guida completa, incluse le app APK per usare i modelli senza terminale:
+**[docs/TERMUX-CRUSH-SETUP.md](docs/TERMUX-CRUSH-SETUP.md)**
